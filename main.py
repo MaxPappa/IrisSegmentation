@@ -1,4 +1,3 @@
-from sys import flags
 import cv2
 import numpy as np
 from pathlib import Path
@@ -28,9 +27,9 @@ def daugman(p: Path, color: bool):
     candidateRay = 0
     candidateCenter = (0,0)
 
-    radii = np.arange(rMin, rMax, 2, dtype=np.int8)
-    for y in np.arange(rows//3, rows-rows//3, 2):   # maybe these ranges are too restrictive
-        for x in np.arange(cols//3, cols-cols//3, 2):
+    radii = np.arange(rMin, rMax, 1, dtype=np.int8)
+    for y in np.arange(rows//3, rows-rows//3, 1):   # maybe these ranges are too restrictive
+        for x in np.arange(cols//3, cols-cols//3, 1):
             center = (x,y)
             lInt, flag = lineInt(img, center, radii, color)
             if not flag or lInt.shape[0] < DELTA: continue
@@ -60,6 +59,12 @@ def daugman(p: Path, color: bool):
 if __name__ == '__main__':
     path = '.'
     dir = Path(f'./{path}')
+    with Path('./UTIRIS') as dataP:
+        if not dataP.is_dir():
+            from utils import downloadDataset
+            utirisUrl = 'http://www.dsp.utoronto.ca/~mhosseini/UTIRIS%20V.1.zip'
+            downloadDataset(dataP, utirisUrl)
+    
     pList = list(dir.glob('./UTIRIS/RGB Images/*/*.JPG'))
     color = True
     color = [color for x in pList]

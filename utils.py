@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 from numpy.core.arrayprint import _make_options_dict
 import scipy
 import numpy as np
@@ -8,9 +9,8 @@ import cv2
 
 def boundMask(img: np.ndarray, n: int, center: tuple, ray: int, color: bool):
     #circ = 2*np.pi*ray
-    theta = (2*np.pi) / n
+    theta = (2*np.pi) / n # / 2*np.pi*ray
     mask = np.zeros_like(img)
-    #print(mask.shape, img.shape)
     rows,cols = img.shape[:2]
 
     angle_1 = np.arange(theta, (2*np.pi)/8, theta)
@@ -23,9 +23,6 @@ def boundMask(img: np.ndarray, n: int, center: tuple, ray: int, color: bool):
     Y = np.round(ray * np.sin(angles) + center[1]).astype(np.uint8)
 
     if np.any(X >= cols) or np.any(Y >= rows) or np.any(X < 0) or np.any(Y < 0):
-        # print(f'rows:{rows},cols:{cols}, Y:{Y}, X:{X}')
-        # print(Y >= rows)
-        # print(np.any(Y>=rows))
         return None, 0
     else:
         if color:

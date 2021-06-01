@@ -61,7 +61,7 @@ if __name__ == '__main__':
     dir = Path(f'./{path}')
     with Path('./UTIRIS') as dataP:
         if not dataP.is_dir():
-            from utils import downloadDataset
+            from downloadDataset import downloadDataset
             utirisUrl = 'http://www.dsp.utoronto.ca/~mhosseini/UTIRIS%20V.1.zip'
             downloadDataset(dataP, utirisUrl)
     

@@ -2,11 +2,12 @@ import cv2
 import numpy as np
 from pathlib import Path
 from multiprocessing import Pool
-from tqdm import tqdm
-from typing import Final
+from tqdm.contrib.concurrent import process_map
+from typing import Final, Tuple
 from scipy.signal import convolve
 from utils import lineInt
 from enum import Enum
+
 
 DELTA_I: Final = 7
 DELTA_P: Final = 5
@@ -29,7 +30,7 @@ def daugman(img: np.ndarray, color: bool, sec: EyeSection, scale: int):
     rows,cols = img.shape[:2]
 
     if sec == EyeSection.iris: rMin, rMax = rows//6, rows//2
-    elif sec == EyeSection.pupil: rMin, rMax = rows//8, rows//4 #25, 50
+    elif sec == EyeSection.pupil: rMin, rMax = rows//8, rows//2
 
     maxValue = 0.0
     candidateVal = 0.0
@@ -48,45 +49,61 @@ def daugman(img: np.ndarray, color: bool, sec: EyeSection, scale: int):
             elif not np.all(lInt):
                 lInt = lInt[:(np.where(lInt == 0)[0][0])]
             
-            d1 = convolve(lInt[:-1], gaussK, 'valid')
-            d2 = convolve(lInt[1:], gaussK,'valid')
+            d1 = convolve(lInt[:-1], gaussK, 'same')
+            d2 = convolve(lInt[1:], gaussK,'same')
             val = np.abs(d1-d2)
 
             if sec == EyeSection.pupil:
                 pupDivider, _ = lineInt(img, center, radii-2, color, full)
-                val = val / pupDivider[delta//2 : -delta//2]
+                #pupDivider = convolve(pupDivider, gaussK, 'same')  # this line is pretty useless
+                val = val / pupDivider[:val.shape[0]]
+
+                # notice that we're 
+
+                #pupDivider[delta//2 : -delta//2]
             
             if np.max(val) > maxValue:
                 maxValue, index = np.max(val), np.argmax(val)
                 candidateVal = maxValue
                 candidateCenter = center
-                candidateRay = radii[delta//2 : - delta//2][index] #if sec == EyeSection.iris else radii[index]
+                candidateRay = radii[index] #[delta//2 : - delta//2][index] #if sec == EyeSection.iris else radii[index]
                 #print(f"cCenter: {candidateCenter}, cRay: {candidateRay}, cVal: {candidateVal}")
 
     return candidateVal, (candidateCenter[0]*scale,candidateCenter[1]*scale), candidateRay*scale
 
 
 def irisSegmentation(p: Path, dst: Path, color: bool = True):
-    print(p.name)
+    #print(p.name)
     img = cv2.imread(str(p.absolute()), cv2.IMREAD_COLOR) if color else cv2.imread(str(p.absolute()), cv2.IMREAD_GRAYSCALE)
+    rows, cols = img.shape[:2]
 
-    scaleIris = 8
+    scaleIris = 12
     iVal, iCenter, iRay = daugman(img, color, EyeSection.iris, scaleIris)  # iris value, center and ray
+    
+    cv2.circle(img, iCenter, int(iRay), (0,0,0))
+    cv2.imwrite(f'{dst.name}/{p.name}', img)
 
     #print(f'iVal:{iVal}, iCenter:{iCenter}, iRay:{iRay}')
 
     # Daugman-pupil-operator only needs red spectrum (can be seen as grayscale image if original image has 3 channels)
-    roiSliceX, roiSliceY = slice(iCenter[0]-iRay, iCenter[0]+iRay), slice(iCenter[1]-iRay, iCenter[1]+iRay)
+    yStart = iCenter[1]-iRay if iCenter[1]-iRay >= 0 else 0
+    yEnd = iCenter[1]+iRay if iCenter[1]+iRay < rows else rows-1
+    xStart = iCenter[0]-iRay if iCenter[0]-iRay >= 0 else 0
+    xEnd = iCenter[0]+iRay if iCenter[0]+iRay < cols else cols-1
+
+    roiSliceX, roiSliceY = slice(xStart, xEnd), slice(yStart, yEnd)
     
-    scalePupil = 6
+    scalePupil = 8
     pVal, pCenter, pRay = daugman(img[roiSliceY, roiSliceX, 2] if color else img[roiSliceY, roiSliceX], False, EyeSection.pupil, scalePupil)
 
     #print(f'pVal:{pVal}, pCenter:{pCenter}, pRay:{pRay}')
     
-    cv2.imwrite(f'{dst.name}/iris_{p.name}', img[roiSliceY, roiSliceX, :])
-    cv2.circle(img, iCenter, int(iRay), (0,0,0))
     cv2.circle(img[roiSliceY, roiSliceX, :], pCenter, int(pRay), (255,0,0))
     cv2.imwrite(f'{dst.name}/{p.name}', img)
+
+def parallelSegmentation(args: Tuple[Path, Path, bool]):
+    irisSegmentation(args[0], args[1], args[2])
+
 
 if __name__ == '__main__':
     path = '.'
@@ -99,16 +116,12 @@ if __name__ == '__main__':
     
     pList = list(dir.glob('./UTIRIS/RGB Images/*/*.JPG'))
     color = True
-    color = [color for x in pList]
-    dsts = [Path('./RES') for x in pList]
+    dst = Path('./RES')
 
-    with Pool(4) as pool:
-        with tqdm(total=len(pList)) as pbar:
-            pool.starmap(irisSegmentation, zip(pList,dsts, color))
-            pbar.update()
+    args = [(p, dst, color) for p in pList]
     
-    
-    # irisSegmentation(Path('./UTIRIS/RGB Images/005/IMG_005_L_1.JPG'), Path('./RES'), True)
+    # from tqdm.contrib.concurrent (basically is a Pool.imap with a tqdm.tqdm)
+    process_map(parallelSegmentation, args, max_workers=1)
 
-    #for p in pList:
-    #    daugman(p, True)
+    #with Pool(4) as pool:
+        #pool.starmap(irisSegmentation, zip(pList,dsts, color))

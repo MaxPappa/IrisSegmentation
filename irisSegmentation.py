@@ -83,7 +83,7 @@ def irisSegmentation(p: Path, dst: Path, color: bool = True):
     scaleIris = 12
     iVal, iCenter, iRay = daugman(img, color, EyeSection.iris, scaleIris)  # iris value, center and ray
     
-    #print(f'iVal:{iVal}, iCenter:{iCenter}, iRay:{iRay}')
+    # print(f'iVal:{iVal}, iCenter:{iCenter}, iRay:{iRay}')
 
     # Daugman-pupil-operator only needs red spectrum (can be seen as grayscale image if original image has 3 channels)
     yStart = iCenter[1]-iRay if iCenter[1]-iRay >= 0 else 0
@@ -96,7 +96,7 @@ def irisSegmentation(p: Path, dst: Path, color: bool = True):
     scalePupil = 8
     pVal, pCenter, pRay = daugman(img[roiSliceY, roiSliceX, 2] if color else img[roiSliceY, roiSliceX], False, EyeSection.pupil, scalePupil)
     pCenter = xStart + pCenter[0], yStart + pCenter[1]
-    #print(f'pVal:{pVal}, pCenter:{pCenter}, pRay:{pRay}')
+    # print(f'pVal:{pVal}, pCenter:{pCenter}, pRay:{pRay}')
 
     normImg = normalize(img, iRay, iCenter, pRay, pCenter)
 
@@ -114,34 +114,26 @@ def irisSegmentation(p: Path, dst: Path, color: bool = True):
 
 
 def normalize(img: np.ndarray, iRay: int, iCenter: Tuple, pRay: int, pCenter: Tuple) -> np.ndarray:
-    rows, cols = img.shape[:2]
-
     height = int(round(iRay * 2))
     width = int(round(iRay * 2 * np.pi))
     normImg = np.zeros((height, width, 3), np.uint8)
 
-    thetaStep = 2*np.pi / width
+    thetaStep = 2*np.pi / width    
+    angles = np.arange(3*np.pi/2, 2*np.pi + 3*np.pi/2, thetaStep)
+    sinAngles = np.sin(angles)
+    cosAngles = np.cos(angles)
 
-    ind = 0
-    
-    for theta in np.arange(3*np.pi/2, 2*np.pi + 3*np.pi/2, thetaStep):
-        xPup = pCenter[0] + pRay * np.cos(theta)
-        yPup = pCenter[1] + pRay * np.sin(theta)
+    xPup = pCenter[0] + pRay * cosAngles
+    yPup = pCenter[1] + pRay * sinAngles
+    xIris = iCenter[0] + iRay * cosAngles
+    yIris = iCenter[1] + iRay * sinAngles
 
-        xIris = iCenter[0] + iRay * np.cos(theta)
-        yIris = iCenter[1] + iRay * np.sin(theta)
+    for j in np.arange(0,height,1):
+        r = j/height
+        xNorm = np.round((1-r) * xIris + r * xPup).astype(int)
+        yNorm = np.round((1-r) * yIris + r * yPup).astype(int)
+        normImg[int(j)] = img[yNorm, xNorm]
 
-        for j in np.arange(0, height, 1):
-            seed = 0
-            r = j/height
-            
-            x = int((1-r) * xIris + r * xPup)
-            y = int((1-r) * yIris + r * yPup)
-
-            if x >= 0 and x < cols and y >= 0 and y < rows:
-                normImg[int(j), ind, :] = img[y,x,:]
-                #print(img[y,x,0], normImg[int(j),ind])
-        ind+=1
     normImg = cv2.resize(normImg, (NORM_WIDTH, NORM_HEIGHT))
 
     return normImg
@@ -167,7 +159,7 @@ if __name__ == '__main__':
     args = [(p, dst, color) for p in pList]
     
     # from tqdm.contrib.concurrent (basically is a Pool.imap with a tqdm.tqdm)
-    process_map(parallelSegmentation, args, max_workers=4)
+    process_map(parallelSegmentation, args, max_workers=2)
 
     #irisSegmentation(Path('./UTIRIS/RGB Images/013/IMG_013_R_3.JPG'), dst, color)
     #with Pool(4) as pool:

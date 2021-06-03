@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 from multiprocessing import Pool
 from tqdm.contrib.concurrent import process_map
-from typing import Final, Tuple
+from typing import DefaultDict, Final, Tuple
 from scipy.signal import convolve
 from utils import lineInt
 from enum import Enum
@@ -14,6 +14,9 @@ DELTA_P: Final = 5
 SIGMA: Final = -1
 gaussK_Iris = cv2.getGaussianKernel(DELTA_I, SIGMA).flatten()
 gaussK_Pupil = cv2.getGaussianKernel(DELTA_P, SIGMA).flatten()
+
+NORM_HEIGHT: Final = 100
+NORM_WIDTH: Final = 600
 
 class EyeSection(Enum):
     iris = 0
@@ -80,9 +83,6 @@ def irisSegmentation(p: Path, dst: Path, color: bool = True):
     scaleIris = 12
     iVal, iCenter, iRay = daugman(img, color, EyeSection.iris, scaleIris)  # iris value, center and ray
     
-    cv2.circle(img, iCenter, int(iRay), (0,0,0))
-    cv2.imwrite(f'{dst.name}/{p.name}', img)
-
     #print(f'iVal:{iVal}, iCenter:{iCenter}, iRay:{iRay}')
 
     # Daugman-pupil-operator only needs red spectrum (can be seen as grayscale image if original image has 3 channels)
@@ -95,11 +95,57 @@ def irisSegmentation(p: Path, dst: Path, color: bool = True):
     
     scalePupil = 8
     pVal, pCenter, pRay = daugman(img[roiSliceY, roiSliceX, 2] if color else img[roiSliceY, roiSliceX], False, EyeSection.pupil, scalePupil)
-
+    pCenter = xStart + pCenter[0], yStart + pCenter[1]
     #print(f'pVal:{pVal}, pCenter:{pCenter}, pRay:{pRay}')
-    
-    cv2.circle(img[roiSliceY, roiSliceX, :], pCenter, int(pRay), (255,0,0))
+
+    normImg = normalize(img, iRay, iCenter, pRay, pCenter)
+
+    cv2.imwrite(f'{dst.name}/normalized_{p.name}', normImg)
+
+
+    # draw circles around iris and pupil (respectively green and red circles)
+    cv2.circle(img, iCenter, int(iRay), (0,255,0))
+    cv2.circle(img, pCenter, int(pRay), (0,0,255))
     cv2.imwrite(f'{dst.name}/{p.name}', img)
+    
+    #print(f'xNorm:{xNorm}, yNorm:{yNorm}')
+
+
+
+
+def normalize(img: np.ndarray, iRay: int, iCenter: Tuple, pRay: int, pCenter: Tuple) -> np.ndarray:
+    rows, cols = img.shape[:2]
+
+    height = int(round(iRay * 2))
+    width = int(round(iRay * 2 * np.pi))
+    normImg = np.zeros((height, width, 3), np.uint8)
+
+    thetaStep = 2*np.pi / width
+
+    ind = 0
+    
+    for theta in np.arange(3*np.pi/2, 2*np.pi + 3*np.pi/2, thetaStep):
+        xPup = pCenter[0] + pRay * np.cos(theta)
+        yPup = pCenter[1] + pRay * np.sin(theta)
+
+        xIris = iCenter[0] + iRay * np.cos(theta)
+        yIris = iCenter[1] + iRay * np.sin(theta)
+
+        for j in np.arange(0, height, 1):
+            seed = 0
+            r = j/height
+            
+            x = int((1-r) * xIris + r * xPup)
+            y = int((1-r) * yIris + r * yPup)
+
+            if x >= 0 and x < cols and y >= 0 and y < rows:
+                normImg[int(j), ind, :] = img[y,x,:]
+                #print(img[y,x,0], normImg[int(j),ind])
+        ind+=1
+    normImg = cv2.resize(normImg, (NORM_WIDTH, NORM_HEIGHT))
+
+    return normImg
+
 
 def parallelSegmentation(args: Tuple[Path, Path, bool]):
     irisSegmentation(args[0], args[1], args[2])
@@ -121,7 +167,8 @@ if __name__ == '__main__':
     args = [(p, dst, color) for p in pList]
     
     # from tqdm.contrib.concurrent (basically is a Pool.imap with a tqdm.tqdm)
-    process_map(parallelSegmentation, args, max_workers=1)
+    process_map(parallelSegmentation, args, max_workers=4)
 
+    #irisSegmentation(Path('./UTIRIS/RGB Images/013/IMG_013_R_3.JPG'), dst, color)
     #with Pool(4) as pool:
         #pool.starmap(irisSegmentation, zip(pList,dsts, color))

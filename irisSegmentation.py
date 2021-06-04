@@ -107,9 +107,6 @@ def irisSegmentation(p: Path, dst: Path, color: bool = True):
     cv2.circle(img, iCenter, int(iRay), (0,255,0))
     cv2.circle(img, pCenter, int(pRay), (0,0,255))
     cv2.imwrite(f'{dst.name}/{p.name}', img)
-    
-    #print(f'xNorm:{xNorm}, yNorm:{yNorm}')
-
 
 
 

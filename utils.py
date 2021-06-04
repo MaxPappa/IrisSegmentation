@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 def boundMask(img: np.ndarray, n: int, center: tuple, ray: int, color: bool, full: bool):
     #circ = 2*np.pi*ray
@@ -40,3 +41,8 @@ def lineInt(img: np.ndarray, center: tuple, radii: np.ndarray, color: bool, full
         if color: l.append(lumaF(img,mask) / numPx)
         else: l.append(np.sum(img[mask]) / numPx)
     return np.array(l), True
+
+
+
+def polyFit():
+    pass

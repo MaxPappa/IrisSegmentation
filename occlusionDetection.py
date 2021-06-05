@@ -1,9 +1,31 @@
 import numpy as np
 import cv2
 
+def drawRays(img: np.ndarray, numRays: int):
+    rows,cols = img.shape[:2]
+    xStart,yStart = cols//2, 0
+    mask = np.zeros_like(img, dtype=bool)
+    rayLength = rows    # maybe I should check if cols < rows, then this assignment should change. Need to handle this.
+    rayLens = np.arange(0,rayLength, 1, dtype=int).reshape(1,-1)
+    angles = np.arange(0, np.pi, (np.pi+np.pi/numRays)/numRays).reshape(-1,1)
+    X = (xStart+np.cos(angles)*rayLens).astype(int)
+    Y = (yStart+np.sin(angles)*rayLens).astype(int)
+    mask[Y,X] = 1
+    return mask, (X,Y)
+
 # input normRed is the one 2D tensor containing only red channel of the normalized iris
 # output is a binary mask
 def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
+    rows, cols = normRed.shape
+    mask = np.zeros_like(normRed)
+    upEyelid = np.zeros_like(normRed)
+    # just swapping two parts of the normalized image, because here we want the upperEyelid at the middle of image
+    upEyelid[:, cols//2:] = normRed[:, 0:cols//2 ]
+    upEyelid[:, 0:cols//2] = normRed[:, cols//2:]
+
+    blurred = cv2.GaussianBlur(upEyelid, (41,41), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_DEFAULT)
+    rayMask, rayCoords = drawRays(blurred)
+    
     pass
 
 
@@ -24,8 +46,9 @@ def lowerEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     return lowEyelidMask
 
 
-def reflectionDetection(imgBlue: np.ndarray) -> np.ndarray:
 
-    
-    
-    pass
+# 'rly? maybe can do better than this.
+def reflectionDetection(normBlue: np.ndarray) -> np.ndarray:
+    #reflectionMask = np.ones_like(normBlue)
+    reflectionMask = cv2.threshold(normBlue, 200, 255, cv2.THRESH_BINARY)
+    return reflectionMask

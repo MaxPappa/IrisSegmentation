@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+from scipy.signal.signaltools import convolve2d
+
 
 def drawRays(img: np.ndarray, numRays: int):
     rows,cols = img.shape[:2]
@@ -9,11 +11,13 @@ def drawRays(img: np.ndarray, numRays: int):
     rayLens = np.arange(0,rayLength, 1, dtype=int).reshape(1,-1)
     angles = np.arange(0, np.pi, (np.pi+np.pi/numRays)/numRays).reshape(-1,1)
     X = (xStart+np.cos(angles)*rayLens).astype(int)
+    X = np.clip(np.column_stack([X-1, X, X+1]), 0, cols-1)
     Y = (yStart+np.sin(angles)*rayLens).astype(int)
+    Y = np.clip(np.column_stack([Y-1, Y, Y+1]), 0, rows-1)
     mask[Y,X] = 1
     return mask, (X,Y)
 
-# input normRed is the one 2D tensor containing only red channel of the normalized iris
+# input normRed is a 2D tensor containing only red channel of the normalized iris
 # output is a binary mask
 def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     rows, cols = normRed.shape
@@ -24,8 +28,29 @@ def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     upEyelid[:, 0:cols//2] = normRed[:, cols//2:]
 
     blurred = cv2.GaussianBlur(upEyelid, (41,41), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_DEFAULT)
-    rayMask, rayCoords = drawRays(blurred)
-    
+    rayMask, (rayXs, rayYs) = drawRays(blurred, numRays=15)
+
+    rayedImg = normRed.copy()
+    rayedImg[rayYs,rayXs] = 160 # grey rays
+
+    sob = cv2.Sobel(rayedImg, cv2.CV_8U, 1, 1, ksize=5)
+    maxIDs = np.argmax(sob[rayYs, rayXs][:,::-1], axis=1)   # with the argmax I want the LAST max on each ray, not the first ones
+    maxY = np.take_along_axis(rayYs[:,::-1], np.expand_dims(maxIDs, axis=-1), axis=-1)
+    maxX= np.take_along_axis(rayXs[:,::-1], np.expand_dims(maxIDs, axis=-1), axis=-1)
+
+
+    # below lines are useless, just a reminder for what to do next.
+    sob[maxY,maxX] = 255
+    normRed[maxY, maxX] = 0 
+
+
+
+    # maxXs, maxYs = list(), list()
+    # for ray in normRed[rayYs, rayXs]:
+    #     maxId = np.argmax(convolve2d(ray, SCHARR, mode='valid'))
+    #     maxXs.append(rayYs[maxId]), maxYs.append(rayXs[maxId])
+    # maxXs, maxYs = np.array(maxXs), np.array(maxYs)
+    # normRed[maxYs,maxXs] = 255
     pass
 
 

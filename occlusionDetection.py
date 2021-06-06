@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 from scipy.signal.signaltools import convolve2d
+from scipy.signal import argrelextrema
+from numpy.polynomial.polynomial import polyfit
 
 
 def drawRays(img: np.ndarray, numRays: int):
@@ -11,9 +13,9 @@ def drawRays(img: np.ndarray, numRays: int):
     rayLens = np.arange(0,rayLength, 1, dtype=int).reshape(1,-1)
     angles = np.arange(0, np.pi, (np.pi+np.pi/numRays)/numRays).reshape(-1,1)
     X = (xStart+np.cos(angles)*rayLens).astype(int)
-    X = np.clip(np.column_stack([X-1, X, X+1]), 0, cols-1)
+    #X = np.clip(np.column_stack([X-1, X, X+1]), 0, cols-1)
     Y = (yStart+np.sin(angles)*rayLens).astype(int)
-    Y = np.clip(np.column_stack([Y-1, Y, Y+1]), 0, rows-1)
+    #Y = np.clip(np.column_stack([Y-1, Y, Y+1]), 0, rows-1)
     mask[Y,X] = 1
     return mask, (X,Y)
 
@@ -21,7 +23,7 @@ def drawRays(img: np.ndarray, numRays: int):
 # output is a binary mask
 def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     rows, cols = normRed.shape
-    mask = np.zeros_like(normRed)
+    mask = np.ones_like(normRed)
     upEyelid = np.zeros_like(normRed)
     # just swapping two parts of the normalized image, because here we want the upperEyelid at the middle of image
     upEyelid[:, cols//2:] = normRed[:, 0:cols//2 ]
@@ -36,21 +38,31 @@ def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     sob = cv2.Sobel(rayedImg, cv2.CV_8U, 1, 1, ksize=5)
     maxIDs = np.argmax(sob[rayYs, rayXs][:,::-1], axis=1)   # with the argmax I want the LAST max on each ray, not the first ones
     maxY = np.take_along_axis(rayYs[:,::-1], np.expand_dims(maxIDs, axis=-1), axis=-1)
-    maxX= np.take_along_axis(rayXs[:,::-1], np.expand_dims(maxIDs, axis=-1), axis=-1)
+    maxX = np.take_along_axis(rayXs[:,::-1], np.expand_dims(maxIDs, axis=-1), axis=-1)
 
+    # outliers detection
+    coordMask = np.ones_like(maxY).astype(bool)
+    coordMask[argrelextrema(sob[maxY,maxX],np.less)] = False
+    coordMask[argrelextrema(maxY,np.less)] = False
+    coordMask[argrelextrema(maxX, np.less)] = False
 
-    # below lines are useless, just a reminder for what to do next.
-    sob[maxY,maxX] = 255
-    normRed[maxY, maxX] = 0 
+    maxX, maxY = maxX[coordMask], maxY[coordMask]   # removing outliers
 
+    xPoly = np.arange(0,cols,1,dtype=int)
+    coeffs = polyfit(maxX, maxY, deg=2)
+    coeffsIDs = np.range(0,coeffs.shape[0],1)
+    yPoly = np.round(np.sum(coeffs * np.power(xPoly[:,None], coeffsIDs[None,:]), axis=1)).astype(int)
+    maskCoords = np.ones_like(yPoly, dtype=bool)
+    maskCoords[np.where(yPoly < 0)] = False
+    maskCoords[np.where(yPoly >= rows)] = False # But with degree == 2 this shouldn't happen.
 
+    xPoly, yPoly = xPoly[maskCoords], yPoly[maskCoords] # filtering out useless/noisy poly-fitted points
 
-    # maxXs, maxYs = list(), list()
-    # for ray in normRed[rayYs, rayXs]:
-    #     maxId = np.argmax(convolve2d(ray, SCHARR, mode='valid'))
-    #     maxXs.append(rayYs[maxId]), maxYs.append(rayXs[maxId])
-    # maxXs, maxYs = np.array(maxXs), np.array(maxYs)
-    # normRed[maxYs,maxXs] = 255
+    # need to figure out how to mark as zero all points from 0 to xPoly
+    # so, something like mask[0:yPoly, xPoly] = 0, but written in a correct way.
+    # after this re-assignment of zeros to mask (which contains only ones), i just need
+    # to re-swap the two parts of mask and return it.
+    # Then this upperEyelidDetection is done.
     pass
 
 

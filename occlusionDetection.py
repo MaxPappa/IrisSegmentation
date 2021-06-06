@@ -23,11 +23,11 @@ def drawRays(img: np.ndarray, numRays: int):
 # output is a binary mask
 def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     rows, cols = normRed.shape
-    mask = np.ones_like(normRed)
     upEyelid = np.zeros_like(normRed)
     # just swapping two parts of the normalized image, because here we want the upperEyelid at the middle of image
     upEyelid[:, cols//2:] = normRed[:, 0:cols//2 ]
     upEyelid[:, 0:cols//2] = normRed[:, cols//2:]
+    swappedMask = np.ones_like(normRed)
 
     blurred = cv2.GaussianBlur(upEyelid, (41,41), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_DEFAULT)
     rayMask, (rayXs, rayYs) = drawRays(blurred, numRays=15)
@@ -58,13 +58,16 @@ def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
 
     xPoly, yPoly = xPoly[maskCoords], yPoly[maskCoords] # filtering out useless/noisy poly-fitted points
 
-    # need to figure out how to mark as zero all points from 0 to xPoly
-    # so, something like mask[0:yPoly, xPoly] = 0, but written in a correct way.
-    # after this re-assignment of zeros to mask (which contains only ones), i just need
-    # to re-swap the two parts of mask and return it.
-    # Then this upperEyelidDetection is done.
-    pass
+    # I literally don't know how to do this in a numpiest way. Tried with np.indices (which returns 2 grids of indices)
+    # but can't figure out how to do it. So I surrended and used a for loop. \_('-')_/
+    for i in range(0, yPoly.shape[0]):
+        swappedMask[0:yPoly[i], xPoly[i]] = 0
 
+    mask = swappedMask.copy()
+    mask[:, cols//2:] = swappedMask[:, 0:cols//2]
+    mask[:, 0:cols//2] = swappedMask[:, cols//2:]
+
+    return mask
 
 def lowerEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     lowEyelidMask = np.ones_like(normRed)

@@ -1,8 +1,6 @@
 import cv2
 import numpy as np
 from pathlib import Path
-from multiprocessing import Pool
-from tqdm.contrib.concurrent import process_map
 from typing import DefaultDict, Final, Tuple
 from scipy.signal import convolve
 from utils import lineInt
@@ -75,7 +73,7 @@ def daugman(img: np.ndarray, color: bool, sec: EyeSection, scale: int):
     return candidateVal, (candidateCenter[0]*scale,candidateCenter[1]*scale), candidateRay*scale
 
 
-def irisSegmentation(p: Path, dst: Path, color: bool = True):
+def irisSegmentation(p: Path, color: bool = True) -> Tuple[np.ndarray, np.ndarray]:
     #print(p.name)
     img = cv2.imread(str(p.absolute()), cv2.IMREAD_COLOR) if color else cv2.imread(str(p.absolute()), cv2.IMREAD_GRAYSCALE)
     rows, cols = img.shape[:2]
@@ -100,13 +98,16 @@ def irisSegmentation(p: Path, dst: Path, color: bool = True):
 
     normImg = normalize(img, iRay, iCenter, pRay, pCenter)
 
-    cv2.imwrite(f'{dst.name}/normalized_{p.name}', normImg)
+    #cv2.imwrite(f'{dstNorm.as_posix()}norm_{p.name}', normImg)
 
 
     # draw circles around iris and pupil (respectively green and red circles)
     cv2.circle(img, iCenter, int(iRay), (0,255,0))
     cv2.circle(img, pCenter, int(pRay), (0,0,255))
-    cv2.imwrite(f'{dst.name}/{p.name}', img)
+    #cv2.imwrite(f'{dst.as_posix()}/{p.name}', img)
+
+    return normImg, img
+    
 
 
 
@@ -134,30 +135,3 @@ def normalize(img: np.ndarray, iRay: int, iCenter: Tuple, pRay: int, pCenter: Tu
     normImg = cv2.resize(normImg, (NORM_WIDTH, NORM_HEIGHT))
 
     return normImg
-
-
-def parallelSegmentation(args: Tuple[Path, Path, bool]):
-    irisSegmentation(args[0], args[1], args[2])
-
-
-if __name__ == '__main__':
-    path = '.'
-    dir = Path(f'./{path}')
-    with Path('./UTIRIS') as dataP:
-        if not dataP.is_dir():
-            from downloadDataset import downloadDataset
-            utirisUrl = 'http://www.dsp.utoronto.ca/~mhosseini/UTIRIS%20V.1.zip'
-            downloadDataset(dataP, utirisUrl)
-    
-    pList = list(dir.glob('./UTIRIS/RGB Images/*/*.JPG'))
-    color = True
-    dst = Path('./RES')
-
-    args = [(p, dst, color) for p in pList]
-    
-    # from tqdm.contrib.concurrent (basically is a Pool.imap with a tqdm.tqdm)
-    process_map(parallelSegmentation, args, max_workers=2)
-
-    #irisSegmentation(Path('./UTIRIS/RGB Images/013/IMG_013_R_3.JPG'), dst, color)
-    #with Pool(4) as pool:
-        #pool.starmap(irisSegmentation, zip(pList,dsts, color))

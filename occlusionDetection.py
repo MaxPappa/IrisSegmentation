@@ -27,7 +27,7 @@ def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     # just swapping two parts of the normalized image, because here we want the upperEyelid at the middle of image
     upEyelid[:, cols//2:] = normRed[:, 0:cols//2 ]
     upEyelid[:, 0:cols//2] = normRed[:, cols//2:]
-    swappedMask = np.ones_like(normRed)
+    swappedMask = np.full_like(normRed, fill_value=255)
 
     blurred = cv2.GaussianBlur(upEyelid, (41,41), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_DEFAULT)
     rayMask, (rayXs, rayYs) = drawRays(blurred, numRays=15)
@@ -50,7 +50,7 @@ def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
 
     xPoly = np.arange(0,cols,1,dtype=int)
     coeffs = polyfit(maxX, maxY, deg=2)
-    coeffsIDs = np.range(0,coeffs.shape[0],1)
+    coeffsIDs = np.arange(0,coeffs.shape[0],1)
     yPoly = np.round(np.sum(coeffs * np.power(xPoly[:,None], coeffsIDs[None,:]), axis=1)).astype(int)
     maskCoords = np.ones_like(yPoly, dtype=bool)
     maskCoords[np.where(yPoly < 0)] = False
@@ -70,11 +70,11 @@ def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     return mask
 
 def lowerEyelidDetection(normRed: np.ndarray) -> np.ndarray:
-    lowEyelidMask = np.ones_like(normRed)
+    lowEyelidMask = np.full_like(normRed, fill_value=255)
     rows, cols = normRed.shape
     # sectionX, sectionY = slice(cols//4, 3*cols//4, 1), slice(0, rows//2, 1)
     # mean,stdev = cv2.meanStdDev(normRed[sectionY, sectionX])
-    mean, stdev = cv2.meanStdDev(normRed[0:rows//2, cols//4, 3*cols//4])
+    mean, stdev = cv2.meanStdDev(normRed[0:rows//2, cols//4:3*cols//4])
     mean, stdev = float(mean), float(stdev)
 
     #threshold = int(mean+stdev)
@@ -90,5 +90,5 @@ def lowerEyelidDetection(normRed: np.ndarray) -> np.ndarray:
 # 'rly? maybe can do better than this.
 def reflectionDetection(normBlue: np.ndarray) -> np.ndarray:
     #reflectionMask = np.ones_like(normBlue)
-    reflectionMask = cv2.threshold(normBlue, 200, 255, cv2.THRESH_BINARY)
+    _,reflectionMask = cv2.threshold(normBlue, 200, 255, cv2.THRESH_BINARY)
     return reflectionMask

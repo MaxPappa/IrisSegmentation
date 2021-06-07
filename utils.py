@@ -41,8 +41,3 @@ def lineInt(img: np.ndarray, center: tuple, radii: np.ndarray, color: bool, full
         if color: l.append(lumaF(img,mask) / numPx)
         else: l.append(np.sum(img[mask]) / numPx)
     return np.array(l), True
-
-
-
-def polyFit():
-    pass

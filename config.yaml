@@ -1,0 +1,11 @@
+folderNames:
+  dstPath: ./results
+  normPath: ./results/normalized
+  maskPath: ./results/mask
+  upperPath: ./results/upperEyelidMask
+  lowerPath: ./results/lowerEyelidMask
+  reflPath: ./results/reflectionMask
+
+dataset:
+  filePathsREGEX: ./UTIRIS/RGB Images/*/*.JPG
+  color: True

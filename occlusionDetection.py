@@ -3,9 +3,31 @@ import cv2
 from scipy.signal.signaltools import convolve2d
 from scipy.signal import argrelextrema
 from numpy.polynomial.polynomial import polyfit
+from typing import Tuple
 
 
-def drawRays(img: np.ndarray, numRays: int):
+def drawRays(img: np.ndarray, numRays: int) -> Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    """drawRays, as the name says, draw a number of rays into the image.
+
+    These drawn rays are needed to detect boundaries of upper eyelid on the normalized image.
+    After this, maxima are detected, outliers removed, and a polynomial fitting algorithm is used to
+    draw these boundaries.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        normalized image (only the red channel)
+    numRays : int
+        number of rays to draw into the normalized image
+    
+    Returns
+    ----------
+    Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]
+        mask in which all 1s are pixels of rays.
+        Second Tuple contains 2 arrays which are all the coordinates of 1s in the mask np.ndarray    
+    """
+
+    
     rows,cols = img.shape[:2]
     xStart,yStart = cols//2, 0
     mask = np.zeros_like(img, dtype=bool)
@@ -19,14 +41,34 @@ def drawRays(img: np.ndarray, numRays: int):
     mask[Y,X] = 1
     return mask, (X,Y)
 
+
+
 # input normRed is a 2D tensor containing only red channel of the normalized iris
 # output is a binary mask
 def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
+    """upperEyelidDetection detects upper eyelid on the red channel of a normalized iris image
+
+    Parameters
+    ----------
+    normRed : np.ndarray
+        red channel of the normalized (iris) image
+
+    Returns
+    ----------
+    np.ndarray
+        binary mask 
+    """
+
+
     rows, cols = normRed.shape
     upEyelid = np.zeros_like(normRed)
     # just swapping two parts of the normalized image, because here we want the upperEyelid at the middle of image
     upEyelid[:, cols//2:] = normRed[:, 0:cols//2 ]
     upEyelid[:, 0:cols//2] = normRed[:, cols//2:]
+
+    cv2.imshow('img', upEyelid)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
     swappedMask = np.full_like(normRed, fill_value=255)
 
     blurred = cv2.GaussianBlur(upEyelid, (41,41), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_DEFAULT)
@@ -69,7 +111,23 @@ def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
 
     return mask
 
+
+
 def lowerEyelidDetection(normRed: np.ndarray) -> np.ndarray:
+    """lowerEyelidDetection detects the lower eyelid of the normalized iris
+
+    Parameters
+    ----------
+    normRed : np.ndarray
+        red channel of the normalized iris image
+
+    Returns
+    ----------
+    np.ndarray
+        Binary mask of the normalized iris. All black pixels are those evalued as part of lower eyelid.
+    """
+
+
     lowEyelidMask = np.full_like(normRed, fill_value=255)
     rows, cols = normRed.shape
     # sectionX, sectionY = slice(cols//4, 3*cols//4, 1), slice(0, rows//2, 1)
@@ -89,6 +147,25 @@ def lowerEyelidDetection(normRed: np.ndarray) -> np.ndarray:
 
 # 'rly? maybe can do better than this.
 def reflectionDetection(normBlue: np.ndarray) -> np.ndarray:
+    """reflectionDetection detects the pixels been part of reflection into the blue channel of normalized iris image.
+
+    Parameters
+    ----------
+    normBlue : np.ndarray
+        blue channel of normalized iris image
+    
+    Returns
+    ----------
+    np.ndarray
+        Binary mask in which all white pixels are those of reflection.
+    
+    Notes
+    ----------
+    In the output binary mask, here, noisy pixels are those with value 255 (white ones), while in the
+    other mask-detectors is the opposite.
+    """
+
+
     #reflectionMask = np.ones_like(normBlue)
     _,reflectionMask = cv2.threshold(normBlue, 200, 255, cv2.THRESH_BINARY)
     return reflectionMask

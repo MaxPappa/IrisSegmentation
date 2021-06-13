@@ -20,8 +20,28 @@ class EyeSection(Enum):
     iris = 0
     pupil = 1
 
+def daugman(img: np.ndarray, color: bool, sec: EyeSection, scale: int) -> Tuple[float, Tuple[int, int], int]:
+    """reproduction with numpy of the daugman integro-differential operator
 
-def daugman(img: np.ndarray, color: bool, sec: EyeSection, scale: int):
+    Parameters
+    ----------
+    img : np.ndarray
+        image that should contain an eye.
+    color : bool
+        True if image is an RGB type (color image), False if is a grayscale one.
+    sec : EyeSection
+        sec can be an EyeSection.iris or EyeSection.pupil, respectively when daugman operator should search for iris or pupil.
+    scale : int
+        scale factor to resize the original image (and restrict amount of pixels to use as center of circumference)
+
+    Returns
+    ----------
+    Tuple[float, Tuple[int, int], int]
+        first value is the value of daugman operator computed for the candidate correct circumference, second value is the corresponding center,
+        third and last value is the corresponding ray.
+    """
+
+
     delta = DELTA_I if sec==EyeSection.iris else DELTA_P
     gaussK = gaussK_Iris if sec==EyeSection.iris else gaussK_Pupil
     full = False if sec==EyeSection.iris else True  # compute the whole circle boundary only in the pupil case
@@ -73,8 +93,24 @@ def daugman(img: np.ndarray, color: bool, sec: EyeSection, scale: int):
     return candidateVal, (candidateCenter[0]*scale,candidateCenter[1]*scale), candidateRay*scale
 
 
+
 def irisSegmentation(p: Path, color: bool = True) -> Tuple[np.ndarray, np.ndarray]:
-    #print(p.name)
+    """irisSegmentation detect, crop and normalize the eye contained in image at path p.
+
+    Parameters
+    ----------
+    p: Path
+        Path (object) of image to read.
+    color: bool, optional
+        if images at Path p is an RGB image, bool will be True, if image is a grayscale one, then color should be set to False.
+    
+    Returns
+    ----------
+    Tuple[np.ndarray, np.ndarray]
+        normalized image and original image with circles around iris and pupil.
+    """
+
+
     img = cv2.imread(str(p.absolute()), cv2.IMREAD_COLOR) if color else cv2.imread(str(p.absolute()), cv2.IMREAD_GRAYSCALE)
     rows, cols = img.shape[:2]
 
@@ -90,7 +126,8 @@ def irisSegmentation(p: Path, color: bool = True) -> Tuple[np.ndarray, np.ndarra
     xEnd = iCenter[0]+iRay if iCenter[0]+iRay < cols else cols-1
 
     roiSliceX, roiSliceY = slice(xStart, xEnd), slice(yStart, yEnd)
-    
+
+
     scalePupil = 8
     pVal, pCenter, pRay = daugman(img[roiSliceY, roiSliceX, 2] if color else img[roiSliceY, roiSliceX], False, EyeSection.pupil, scalePupil)
     pCenter = xStart + pCenter[0], yStart + pCenter[1]
@@ -112,6 +149,28 @@ def irisSegmentation(p: Path, color: bool = True) -> Tuple[np.ndarray, np.ndarra
 
 
 def normalize(img: np.ndarray, iRay: int, iCenter: Tuple, pRay: int, pCenter: Tuple) -> np.ndarray:
+    """normalize, as the name says, normalizes the iris using the rubber sheet model.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        image containing an eye.
+    iRay : int
+        detected iris ray.
+    iCenter : Tuple
+        detected center (x,y) of iris.
+    pRay : int
+        detected pupil ray.
+    pCenter : Tuple
+        detected center (x,y) of pupil.
+
+    Returns
+    ----------
+    np.ndarray
+        normalized iris with a dimension of 100x600.
+    """
+
+
     height = int(round(iRay * 2))
     width = int(round(iRay * 2 * np.pi))
     normImg = np.zeros((height, width, 3), np.uint8)

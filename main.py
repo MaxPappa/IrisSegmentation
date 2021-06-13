@@ -59,7 +59,7 @@ if __name__ == '__main__':
         Path(config.folderNames.reflPath).mkdir()
 
     # for p in pList:
-        parallelSegmentation(p)
+        #parallelSegmentation(p)
     
     # from tqdm.contrib.concurrent (basically is a Pool.imap with a tqdm.tqdm)
     process_map(parallelSegmentation, pList, max_workers=2)

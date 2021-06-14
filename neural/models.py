@@ -8,6 +8,7 @@ def make_resnet(
     num_layers,
     activation,
     kernel_size,
+    max_num_channels=512,
     dropout=0.0,
 ):
     layers = [
@@ -21,15 +22,15 @@ def make_resnet(
         # starts from in_channels = 32, out_channels = 64 and grows exponentially
         # with num_layers = 3 it goes to 256 channels
         resnet_block(
-            2 ** (5 + i),
-            2 ** (6 + i),
+            min(max_num_channels, 2 ** (5 + i)),
+            min(max_num_channels, 2 ** (6 + i)),
             kernel_size=kernel_size,
             activation=activation,
             dropout=dropout,
         )
         for i in range(num_layers)
     ]
-    out_channels = 2 ** (6 + num_layers - 1)
+    out_channels = min(max_num_channels, 2 ** (6 + num_layers - 1))
     return nn.Sequential(*layers), out_channels
 
 

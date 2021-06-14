@@ -12,7 +12,7 @@ def parse_args():
 
     parser.add_argument("--batch_size", default=64, type=int)
     parser.add_argument("--learning_rate", default=1e-3, type=float)
-    parser.add_argument("--num_convnet_layers", default=1e-3, type=float)
+    parser.add_argument("--num_convnet_layers", default=5, type=int)
 
     args = parser.parse_args()
     return args

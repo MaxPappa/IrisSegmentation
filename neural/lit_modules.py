@@ -43,6 +43,7 @@ class ConvNetClassifier(pl.LightningModule):
             dropout=dropout,
             activation=activation,
             kernel_size=3,
+            max_num_channels=256,
         )
         self.convnet = nn.Sequential(
             convnet,
@@ -83,6 +84,7 @@ class ConvNetClassifier(pl.LightningModule):
         x = self.classifier(x)
         return x
 
+    @torch.no_grad()
     def predict(self, x):
         logits = self(x)
         return self._compute_predictions(logits)
@@ -109,8 +111,8 @@ class ConvNetClassifier(pl.LightningModule):
         labels = batch["label"]
         preds = self._compute_predictions(logits)
 
-        metrics = self.train_metrics(preds, labels.view(-1))
-        self.log_dict(metrics, on_epoch=True, on_step=False)
+        # metrics = self.train_metrics(preds, labels.view(-1))
+        # self.log_dict(metrics, on_epoch=True, on_step=False)
 
         self.log_dict(
             {"train/loss": loss},

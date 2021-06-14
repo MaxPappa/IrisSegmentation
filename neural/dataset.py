@@ -74,7 +74,7 @@ class IrisClassificationDataset(Dataset):
             mask_path = self.mask_paths[normalized_pathname]
             self.data.append(
                 Item(
-                    subject_id=subject_id,
+                    subject_id=subject_id - 1,
                     which_eye=which_eye,
                     image_path=image_path,
                     mask_path=mask_path,

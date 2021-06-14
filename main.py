@@ -22,7 +22,7 @@ def parallelSegmentation(path: Path) -> None:
     cv2.imwrite(f"{config.folderNames.normPath}/norm_{path.name}", normImg)
     cv2.imwrite(f"{config.folderNames.dstPath}/{path.name}", img)
 
-    upperMask = upperEyelidDetection(normImg[:, :, 2])  # red channel as input
+    upperMask = upperEyelidDetection(normImg[:,:,2], numRays=46)    # red channel as input, numRays as in the haindl-krupicka paper
     lowerMask = lowerEyelidDetection(normImg[:, :, 2])  # red channel as input
     reflMask = reflectionDetection(normImg[:, :, 0])  # blue channel as input
 

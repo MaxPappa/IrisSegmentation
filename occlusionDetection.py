@@ -46,18 +46,20 @@ def drawRays(
 
 # input normRed is a 2D tensor containing only red channel of the normalized iris
 # output is a binary mask
-def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
+def upperEyelidDetection(normRed: np.ndarray, numRays: int) -> np.ndarray:
     """upperEyelidDetection detects upper eyelid on the red channel of a normalized iris image
 
     Parameters
     ----------
     normRed : np.ndarray
         red channel of the normalized (iris) image
+    numRays : int
+        number of rays to draw and use to detect upper eyelid
 
     Returns
     ----------
     np.ndarray
-        binary mask
+        binary mask 
     """
 
     rows, cols = normRed.shape
@@ -74,7 +76,7 @@ def upperEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     blurred = cv2.GaussianBlur(
         upEyelid, (41, 41), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_DEFAULT
     )
-    rayMask, (rayXs, rayYs) = drawRays(blurred, numRays=15)
+    rayMask, (rayXs, rayYs) = drawRays(blurred, numRays=numRays)
 
     rayedImg = normRed.copy()
     rayedImg[rayYs, rayXs] = 160  # grey rays

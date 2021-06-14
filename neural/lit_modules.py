@@ -23,6 +23,7 @@ class ConvNetClassifier(pl.LightningModule):
         self,
         image_size,
         num_classes,
+        name: str = "untrained_convnet",  # symbolic name (used in logs)
         num_convnet_layers=4,
         activation=nn.LeakyReLU(),
         dropout=0.0,
@@ -77,8 +78,10 @@ class ConvNetClassifier(pl.LightningModule):
             )
         ]
         metrics = MetricCollection(metrics)
-        self.train_metrics = metrics.clone(prefix="train/")
-        self.val_metrics = metrics.clone(prefix="val/")
+        self.train_metrics = metrics.clone(postfix="/train")
+        self.val_metrics = metrics.clone(postfix="/val")
+
+        self.save_hyperparameters()
 
     def forward(self, x):
         x = self.convnet(x)
@@ -116,7 +119,7 @@ class ConvNetClassifier(pl.LightningModule):
         self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
 
         self.log_dict(
-            {"train/loss": loss},
+            {"loss/train": loss},
             on_step=False,
             on_epoch=True,
             prog_bar=True,
@@ -133,7 +136,7 @@ class ConvNetClassifier(pl.LightningModule):
         self.log_dict(metrics, on_epoch=True, on_step=False)
 
         self.log_dict(
-            {"val/loss": loss},
+            {"loss/val": loss},
             on_step=False,
             on_epoch=True,
             prog_bar=True,

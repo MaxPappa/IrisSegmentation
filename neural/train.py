@@ -1,9 +1,12 @@
+import hydra
+import omegaconf
 from argparse import ArgumentParser
 import pytorch_lightning as pl
 import torch
 
 from neural.datamodule import IrisDataModule
 from neural.lit_modules import ConvNetClassifier
+from neural.project_utils import PROJECT_ROOT, log_hyperparameters
 
 
 def parse_args():
@@ -20,24 +23,31 @@ def parse_args():
     return args
 
 
-def main():
+@hydra.main(config_path=str(PROJECT_ROOT / "conf"), config_name="default")
+def main(cfg: omegaconf.DictConfig):
 
-    args = parse_args()
-
-    trainer = pl.Trainer.from_argparse_args(args)
-
-    model = ConvNetClassifier(
-        (600, 100),
-        79,
-        num_convnet_layers=args.num_convnet_layers,
-        activation=torch.nn.LeakyReLU(),
-        dropout=0.2,
-        learning_rate=args.learning_rate,
-        max_num_channels=args.max_num_channels,
+    # Instantiate all modules specified in the configs
+    model = hydra.utils.instantiate(
+        cfg.model,  # Object to instantiate
+        _recursive_=True,
     )
-    datamodule = IrisDataModule(
-        training_path=args.training_path, batch_size=args.batch_size
+    datamodule = hydra.utils.instantiate(cfg.data)
+    callbacks = [
+        # quando avremo il val set, questi diventano 'loss/val'
+        pl.callbacks.ModelCheckpoint(monitor="loss/train"),
+        pl.callbacks.EarlyStopping(monitor="loss/train", patience=2),
+    ]
+
+    # Let hydra manage direcotry outputs
+    tensorboard = pl.loggers.TensorBoardLogger(
+        ".", "", "", log_graph=True, default_hp_metric=False
     )
+    trainer = pl.Trainer(
+        **omegaconf.OmegaConf.to_container(cfg.trainer),
+        logger=tensorboard,
+        callbacks=callbacks,
+    )
+    log_hyperparameters(trainer=trainer, model=model, cfg=cfg)
 
     trainer.fit(model, datamodule)
 

@@ -6,3 +6,4 @@ torchvision
 Pillow
 pytorch-lightning
 hydra-core
+python-dotenv

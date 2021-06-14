@@ -13,7 +13,7 @@ class IrisDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         return get_dataloader(
-            self.path, batch_size=self.batch_size, shuffle=True, num_workers=4
+            self.training_path, batch_size=self.batch_size, shuffle=True, num_workers=4
         )
 
     # to be defined...

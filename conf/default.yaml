@@ -14,6 +14,7 @@ experiment: baseline
 defaults:
   - data: iris.yaml  # Path to sub-config, can also omit the .yaml extension
   - model: convnet.yaml  # I add full path for easy navigation in vim (cursor in path, press gf)
+  - train: default.yaml
 
   # cosa fa questo? boh
   # - override hydra/job_logging: default

@@ -34,8 +34,10 @@ def main(cfg: omegaconf.DictConfig):
     datamodule = hydra.utils.instantiate(cfg.data)
     callbacks = [
         # quando avremo il val set, questi diventano 'loss/val'
-        pl.callbacks.ModelCheckpoint(monitor="loss/train"),
-        pl.callbacks.EarlyStopping(monitor="loss/train", patience=2),
+        pl.callbacks.ModelCheckpoint(monitor=cfg.train.monitor_metric),
+        pl.callbacks.EarlyStopping(
+            monitor=cfg.train.monitor_metric, patience=cfg.train.early_stop_patience
+        ),
     ]
 
     # Let hydra manage direcotry outputs

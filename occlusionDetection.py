@@ -30,18 +30,19 @@ def drawRays(
         Second Tuple contains 2 arrays which are all the coordinates of 1s in the mask np.ndarray
     """
 
-    rows, cols = img.shape[:2]
-    xStart, yStart = cols // 2, 0
-    mask = np.zeros_like(img, dtype=bool)
-    rayLength = rows  # maybe I should check if cols < rows, then this assignment should change. Need to handle this.
-    rayLens = np.arange(0, rayLength, 1, dtype=int).reshape(1, -1)
-    angles = np.arange(0, np.pi, (np.pi + np.pi / numRays) / numRays).reshape(-1, 1)
-    X = (xStart + np.cos(angles) * rayLens).astype(int)
-    # X = np.clip(np.column_stack([X-1, X, X+1]), 0, cols-1)
-    Y = (yStart + np.sin(angles) * rayLens).astype(int)
-    # Y = np.clip(np.column_stack([Y-1, Y, Y+1]), 0, rows-1)
-    mask[Y, X] = 1
-    return mask, (X, Y)
+    rows,cols = img.shape[:2]
+    xStart,yStart = cols//2, 0
+    mask = np.zeros_like(img, dtype=np.uint8)
+    rayLength = cols//4    # maybe I should check if cols < rows, then this assignment should change. Need to handle this.
+    rayLens = np.arange(0,rayLength, 1, dtype=int).reshape(1,-1)
+    angles = np.arange(0, np.pi, (np.pi+np.pi/numRays)/numRays).reshape(-1,1)
+    X = (xStart+np.cos(angles)*rayLens).astype(int)
+    #X = np.clip(np.column_stack([X-1, X, X+1]), 0, cols-1)
+    Y = np.clip((yStart+np.sin(angles)*rayLens).astype(int), 0, rows-1)
+    #Y = np.clip(np.column_stack([Y-1, Y, Y+1]), 0, rows-1)
+    mask[Y,X] = 255
+    return mask, (X,Y)
+
 
 
 # input normRed is a 2D tensor containing only red channel of the normalized iris

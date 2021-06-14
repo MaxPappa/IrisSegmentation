@@ -64,14 +64,14 @@ class ConvNetClassifier(pl.LightningModule):
 
         metrics = [
             metric_class(
-                num_classes=self.num_classes,
-                average="macro",
+                num_classes=self.num_classes + 1,
+                average="micro",
             )
             for metric_class in [Accuracy, Precision, Recall, F1]
         ]
         metrics += [
             ConfusionMatrix(
-                num_classes=self.num_classes,
+                num_classes=self.num_classes + 1,
                 normalize="true",  # normalize over ground-truth labels
             )
         ]
@@ -111,8 +111,8 @@ class ConvNetClassifier(pl.LightningModule):
         labels = batch["label"]
         preds = self._compute_predictions(logits)
 
-        # metrics = self.train_metrics(preds, labels.view(-1))
-        # self.log_dict(metrics, on_epoch=True, on_step=False)
+        metrics = self.train_metrics(preds, labels.view(-1))
+        self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
 
         self.log_dict(
             {"train/loss": loss},

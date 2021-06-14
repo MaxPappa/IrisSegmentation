@@ -13,7 +13,7 @@ def make_resnet(
 ):
     layers = [
         nn.Conv2d(
-            in_channels, 2 ** 5, kernel_size=kernel_size, padding=kernel_size // 2
+            in_channels, 2 ** 4, kernel_size=kernel_size, padding=kernel_size // 2
         ),
         nn.Dropout(dropout),
         activation,
@@ -22,15 +22,15 @@ def make_resnet(
         # starts from in_channels = 32, out_channels = 64 and grows exponentially
         # with num_layers = 3 it goes to 256 channels
         resnet_block(
+            min(max_num_channels, 2 ** (4 + i)),
             min(max_num_channels, 2 ** (5 + i)),
-            min(max_num_channels, 2 ** (6 + i)),
             kernel_size=kernel_size,
             activation=activation,
             dropout=dropout,
         )
         for i in range(num_layers)
     ]
-    out_channels = min(max_num_channels, 2 ** (6 + num_layers - 1))
+    out_channels = min(max_num_channels, 2 ** (5 + num_layers - 1))
     return nn.Sequential(*layers), out_channels
 
 

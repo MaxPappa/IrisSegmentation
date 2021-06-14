@@ -27,6 +27,7 @@ class ConvNetClassifier(pl.LightningModule):
         activation=nn.LeakyReLU(),
         dropout=0.0,
         learning_rate=1e-3,
+        max_num_channels=256,
     ):
         super().__init__()
 
@@ -43,7 +44,7 @@ class ConvNetClassifier(pl.LightningModule):
             dropout=dropout,
             activation=activation,
             kernel_size=3,
-            max_num_channels=512,
+            max_num_channels=max_num_channels,
         )
         self.convnet = nn.Sequential(
             convnet,

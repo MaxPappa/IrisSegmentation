@@ -13,6 +13,7 @@ def parse_args():
     parser.add_argument("--batch_size", default=64, type=int)
     parser.add_argument("--learning_rate", default=1e-3, type=float)
     parser.add_argument("--num_convnet_layers", default=5, type=int)
+    parser.add_argument("--max_num_channels", default=256, type=int)
     parser.add_argument("--training_path", default="./results/", type=str)
 
     args = parser.parse_args()
@@ -32,6 +33,7 @@ def main():
         activation=torch.nn.LeakyReLU(),
         dropout=0.2,
         learning_rate=args.learning_rate,
+        max_num_channels=args.max_num_channels,
     )
     datamodule = IrisDataModule(
         training_path=args.training_path, batch_size=args.batch_size

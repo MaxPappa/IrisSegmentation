@@ -1,0 +1,8 @@
+opencv-python
+numpy
+numba
+torch
+torchvision
+Pillow
+pytorch-lightning
+hydra-core

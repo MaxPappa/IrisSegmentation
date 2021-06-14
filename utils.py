@@ -1,3 +1,4 @@
+import numba
 import numpy as np
 
 
@@ -34,25 +35,26 @@ def boundMask(
         return mask, np.count_nonzero(mask)
 
 
-lumaF = (
-    lambda img, mask: np.sum(img[mask, 0] * 0.114)
-    + np.sum(img[mask, 1] * 0.587)
-    + np.sum(img[mask, 2] * 0.299)
-)
+def lumaF(img: np.ndarray, mask: np.ndarray):
+    return (
+        np.sum(img[mask, 0] * 0.114)
+        + np.sum(img[mask, 1] * 0.587)
+        + np.sum(img[mask, 2] * 0.299)
+    )
 
 
 def lineInt(img: np.ndarray, center: tuple, radii: np.ndarray, color: bool, full: bool):
-    l = list()
     rows, cols = img.shape[:2]
-    for r in radii:
+    l = np.zeros((len(radii),))
+    for i, r in enumerate(radii):
         mask, numPx = boundMask(
             img=img, n=600, center=center, ray=r, color=color, full=full
         )
         if numPx == 0:
-            l.append(0)
-            return np.array(l), True
+            return l[: i + 1], True
         if color:
-            l.append(lumaF(img, mask) / numPx)
+
+            l[i] = lumaF(img, mask) / numPx
         else:
-            l.append(np.sum(img[mask]) / numPx)
-    return np.array(l), True
+            l[i] = np.sum(img[mask]) / numPx
+    return l, True

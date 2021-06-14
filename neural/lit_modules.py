@@ -43,7 +43,7 @@ class ConvNetClassifier(pl.LightningModule):
             dropout=dropout,
             activation=activation,
             kernel_size=3,
-            max_num_channels=256,
+            max_num_channels=512,
         )
         self.convnet = nn.Sequential(
             convnet,

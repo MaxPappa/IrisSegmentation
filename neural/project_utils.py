@@ -52,6 +52,10 @@ def load_envs(env_file: Optional[str] = None) -> None:
 STATS_KEY: str = "stats"
 
 
+def empty(*args, **kwargs):
+    pass
+
+
 # Adapted from https://github.com/hobogalaxy/lightning-hydra-template/blob/6bf03035107e12568e3e576e82f83da0f91d6a11/src/utils/template_utils.py#L125
 def log_hyperparameters(
     cfg: DictConfig,
@@ -83,7 +87,7 @@ def log_hyperparameters(
 
     # disable logging any more hyperparameters for all loggers
     # (this is just a trick to prevent trainer from logging hparams of model, since we already did that above)
-    trainer.logger.log_hyperparams = lambda params: None
+    trainer.logger.log_hyperparams = empty
 
 
 # Load environment variables

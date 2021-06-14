@@ -17,8 +17,9 @@ defaults:
   - train: default.yaml
 
   # cosa fa questo? boh
-  # - override hydra/job_logging: default
-  # - override hydra/hydra_logging: default
+  # fa cose carine se installi hydra-colorlog e usi joblib ma non serve
+  # - override hydra/job_logging: colorlog
+  # - override hydra/hydra_logging: colorlog
 
 # Pytorch lightning trainer's argument
 # default flags are commented to avoid clustering the hyperparameters

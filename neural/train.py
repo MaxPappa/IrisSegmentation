@@ -1,3 +1,4 @@
+import logging
 import hydra
 import omegaconf
 from argparse import ArgumentParser
@@ -7,6 +8,8 @@ import torch
 from neural.datamodule import IrisDataModule
 from neural.lit_modules import ConvNetClassifier
 from neural.project_utils import PROJECT_ROOT, log_hyperparameters
+
+logger = logging.getLogger(__name__)
 
 
 def parse_args():
@@ -25,6 +28,7 @@ def parse_args():
 
 @hydra.main(config_path=str(PROJECT_ROOT / "conf"), config_name="default")
 def main(cfg: omegaconf.DictConfig):
+    logger.info("\n" + omegaconf.OmegaConf.to_yaml(cfg))
 
     # Instantiate all modules specified in the configs
     model = hydra.utils.instantiate(
@@ -42,13 +46,14 @@ def main(cfg: omegaconf.DictConfig):
 
     # Let hydra manage direcotry outputs
     tensorboard = pl.loggers.TensorBoardLogger(
-        ".", "", "", log_graph=True, default_hp_metric=False
+        "./lightning_logs/", "default", None, log_graph=True, default_hp_metric=False
     )
     trainer = pl.Trainer(
         **omegaconf.OmegaConf.to_container(cfg.trainer),
         logger=tensorboard,
         callbacks=callbacks,
     )
+
     log_hyperparameters(trainer=trainer, model=model, cfg=cfg)
 
     trainer.fit(model, datamodule)

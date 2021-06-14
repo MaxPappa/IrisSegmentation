@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torchvision import transforms as T
 from torch.utils.data import DataLoader, random_split
 import pytorch_lightning as pl
+from typing import Tuple
 
 from torchmetrics import (
     MetricCollection,
@@ -21,7 +22,7 @@ from neural.models import make_resnet, make_mlp
 class ConvNetClassifier(pl.LightningModule):
     def __init__(
         self,
-        image_size,
+        image_size: Tuple[int, int],
         num_classes,
         name: str = "untrained_convnet",  # symbolic name (used in logs)
         num_convnet_layers=4,
@@ -32,6 +33,7 @@ class ConvNetClassifier(pl.LightningModule):
     ):
         super().__init__()
 
+        self.save_hyperparameters()
         self.image_size = image_size
         self.num_classes = num_classes
         self.num_convnet_layers = num_convnet_layers
@@ -81,7 +83,7 @@ class ConvNetClassifier(pl.LightningModule):
         self.train_metrics = metrics.clone(postfix="/train")
         self.val_metrics = metrics.clone(postfix="/val")
 
-        self.save_hyperparameters()
+        self.example_input_array = torch.randn((2, 3, image_width, image_height))
 
     def forward(self, x):
         x = self.convnet(x)

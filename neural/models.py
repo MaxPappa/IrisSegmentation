@@ -3,52 +3,6 @@ import torch
 from torch import nn
 
 
-class ConvNetClassifier(nn.Module):
-    def __init__(
-        self,
-        image_size,
-        num_classes,
-        num_convnet_layers=4,
-        activation=nn.LeakyReLU(),
-        dropout=0.0,
-    ):
-        super().__init__()
-
-        self.image_size = image_size
-        self.num_classes = num_classes
-        self.num_convnet_layers = num_convnet_layers
-
-        image_width, image_height = image_size
-        convnet, out_channels = make_resnet(
-            in_channels=3,
-            num_layers=num_convnet_layers,
-            dropout=dropout,
-            activation=activation,
-            kernel_size=3,
-        )
-        self.convnet = nn.Sequential(
-            convnet,
-            nn.Flatten(1),  # [batch, -1]
-        )
-        flattened_size = out_channels * (
-            (image_width // (2 ** num_convnet_layers))
-            * (image_height // (2 ** num_convnet_layers))
-        )
-
-        self.classifier = make_mlp(
-            flattened_size,
-            num_classes,
-            hidden_sizes=[1000, 500],
-            dropout=dropout,
-            activation=activation,
-        )
-
-    def forward(self, x):
-        x = self.convnet(x)
-        x = self.classifier(x)
-        return x
-
-
 def make_resnet(
     in_channels,
     num_layers,
@@ -88,7 +42,10 @@ def make_mlp(in_size, out_size, hidden_sizes, activation, dropout=0.0):
         return mlp_block(in_size, out_size, dropout=dropout, activation=activation)
 
     layers = []
-    for hidden_size in hidden_sizes + [out_size]:
+    for i, hidden_size in enumerate(hidden_sizes + [out_size]):
+        if i == len(hidden_sizes):
+            layers.append(nn.Linear(in_size, hidden_size))
+            break  # might have been continue as well, it is the last iteration for sure
         layers.append(
             mlp_block(in_size, hidden_size, dropout=dropout, activation=activation)
         )
@@ -142,26 +99,3 @@ def bottleneck_block(in_channels, out_channels, activation, kernel_size=3, dropo
         activation,
         nn.MaxPool2d(2),
     )
-
-
-if __name__ == "__main__":
-    print("instantiating model ")
-    model = ConvNetClassifier(
-        image_size=(600, 100),
-        num_classes=79,
-        dropout=0.1,
-    )
-    print("model created")
-
-    from neural.dataset import get_dataloader
-
-    dataloader = get_dataloader(dataset_path="./results/", batch_size=4)
-
-    batch = next(iter(dataloader))
-
-    x, y = batch["image"], batch["label"]
-
-    model_output = model(x)
-    loss = nn.functional.cross_entropy(model_output, y)
-    loss.backward()
-    print(f"{loss=}")

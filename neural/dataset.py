@@ -1,3 +1,4 @@
+from copy import deepcopy
 from random import sample
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -7,7 +8,7 @@ from PIL import Image
 from torchvision import transforms as T
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple
 
 
 @dataclass
@@ -62,24 +63,24 @@ class IrisClassificationDataset(Dataset):
             and self.mask_path.is_dir()
         )
 
-        self.image_paths = {
+        image_paths = {
             normalize_pathname(path): path for path in self.iris_path.glob("*.JPG")
         }
-        self.mask_paths = {
+        mask_paths = {
             normalize_pathname(path): path for path in self.mask_path.glob("*.JPG")
         }
 
-        # self.image_paths has to contain the same set of image names as self.mask_paths
-        assert set(self.image_paths.keys()) == set(self.mask_paths.keys())
+        # image_paths has to contain the same set of image names as mask_paths
+        assert set(image_paths.keys()) == set(mask_paths.keys())
 
         # construct list of Item objects (our training data)
         self.data = []
-        for normalized_pathname, image_path in self.image_paths.items():
+        for normalized_pathname, image_path in image_paths.items():
             # example normalized_pathname: "001_L_1"
             # we care just about the first two fields separated by "_"
             subject_id, which_eye, example_id = normalized_pathname.split("_")
             subject_id, example_id = int(subject_id), int(example_id)
-            mask_path = self.mask_paths[normalized_pathname]
+            mask_path = mask_paths[normalized_pathname]
             self.data.append(
                 Item(
                     subject_id=subject_id - 1,
@@ -119,6 +120,20 @@ class IrisClassificationDataset(Dataset):
 
     def __len__(self):
         return len(self.data)
+
+    @staticmethod
+    def train_test_split(
+        dataset: "IrisClassificationDataset", val_percent: float
+    ) -> Tuple["IrisClassificationDataset", "IrisClassificationDataset"]:
+
+        train_data, val_data = dataset.random_fair_split(dataset, val_percent)
+
+        train_dataset, val_dataset = deepcopy(dataset), deepcopy(dataset)
+
+        train_dataset.data = train_data
+        val_dataset.data = val_data
+
+        return train_dataset, val_dataset
 
     @staticmethod
     def random_fair_split(dataset, val_percent: float):
@@ -200,6 +215,8 @@ if __name__ == "__main__":
 
     val_pct = 0.2
     print(f"splitto il dataset con il {100*val_pct:.2f}% di validation set...")
-    t, v = dataset.random_fair_split(dataset, 0.2)
-    print(f"train: {len(t)} elementi")
-    print(f"val: {len(v)} elementi")
+
+    train_dataset, val_dataset = dataset.train_test_split(dataset, 0.2)
+
+    print(f"train: {len(train_dataset)} elementi")
+    print(f"val: {len(val_dataset)} elementi")

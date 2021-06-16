@@ -1,6 +1,6 @@
 import logging
 import hydra
-import omegaconf
+from omegaconf import OmegaConf, DictConfig
 from argparse import ArgumentParser
 import pytorch_lightning as pl
 import torch
@@ -27,15 +27,23 @@ def parse_args():
 
 
 @hydra.main(config_path=str(PROJECT_ROOT / "conf"), config_name="default")
-def main(cfg: omegaconf.DictConfig):
-    logger.info("\n" + omegaconf.OmegaConf.to_yaml(cfg))
+def main(cfg: DictConfig):
+    logger.info("\n" + OmegaConf.to_yaml(cfg))
 
     # Instantiate all modules specified in the configs
     model = hydra.utils.instantiate(
         cfg.model,  # Object to instantiate
         _recursive_=True,
     )
+
     datamodule = hydra.utils.instantiate(cfg.data)
+
+    # Let hydra manage direcotry outputs
+    tensorboard = pl.loggers.TensorBoardLogger(
+        ".", "", "", log_graph=False, default_hp_metric=False
+    )
+    # "./lightning_logs/", "default", None, log_graph=True, default_hp_metric=False
+
     callbacks = [
         # quando avremo il val set, questi diventano 'loss/val'
         pl.callbacks.ModelCheckpoint(monitor=cfg.train.monitor_metric),
@@ -44,17 +52,13 @@ def main(cfg: omegaconf.DictConfig):
         ),
     ]
 
-    # Let hydra manage direcotry outputs
-    tensorboard = pl.loggers.TensorBoardLogger(
-        "./lightning_logs/", "default", None, log_graph=True, default_hp_metric=False
-    )
     trainer = pl.Trainer(
-        **omegaconf.OmegaConf.to_container(cfg.trainer),
+        **OmegaConf.to_container(cfg.trainer),
         logger=tensorboard,
         callbacks=callbacks,
     )
 
-    log_hyperparameters(trainer=trainer, model=model, cfg=cfg)
+    # log_hyperparameters(trainer=trainer, model=model, cfg=cfg)
 
     trainer.fit(model, datamodule)
 

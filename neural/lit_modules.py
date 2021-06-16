@@ -22,7 +22,8 @@ from neural.models import make_resnet, make_mlp
 class ConvNetClassifier(pl.LightningModule):
     def __init__(
         self,
-        image_size: Tuple[int, int],
+        image_width: int,
+        image_height: int,
         num_classes,
         name: str = "untrained_convnet",  # symbolic name (used in logs)
         num_convnet_layers=4,
@@ -34,13 +35,13 @@ class ConvNetClassifier(pl.LightningModule):
         super().__init__()
 
         self.save_hyperparameters()
-        self.image_size = image_size
+        self.image_width = image_width
+        self.image_height = image_height
         self.num_classes = num_classes
         self.num_convnet_layers = num_convnet_layers
         self.lr = learning_rate
         self.loss_criterion = nn.CrossEntropyLoss()
 
-        image_width, image_height = image_size
         convnet, out_channels = make_resnet(
             in_channels=3,
             num_layers=num_convnet_layers,
@@ -72,12 +73,6 @@ class ConvNetClassifier(pl.LightningModule):
                 average="micro",
             )
             for metric_class in [Accuracy, Precision, Recall, F1]
-        ]
-        metrics += [
-            ConfusionMatrix(
-                num_classes=self.num_classes + 1,
-                normalize="true",  # normalize over ground-truth labels
-            )
         ]
         metrics = MetricCollection(metrics)
         self.train_metrics = metrics.clone(postfix="/train")
@@ -118,7 +113,6 @@ class ConvNetClassifier(pl.LightningModule):
         preds = self._compute_predictions(logits)
 
         metrics = self.train_metrics(preds, labels.view(-1))
-        self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
 
         self.log_dict(
             {"loss/train": loss},
@@ -137,7 +131,6 @@ class ConvNetClassifier(pl.LightningModule):
         preds = self._compute_predictions(logits)
 
         metrics = self.val_metrics(preds, labels.view(-1))
-        self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
 
         self.log_dict(
             {"loss/val": loss},
@@ -150,11 +143,31 @@ class ConvNetClassifier(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
+    def on_train_start(self):
+        # Proper logging of hyperparams and metrics in TB
+        val_metrics = self.val_metrics.compute()
+        self.logger.log_hyperparams(
+            self.hparams,
+            {
+                "loss/val": 1.0,
+                **val_metrics,
+            },
+        )
+
+    def training_epoch_end(self, step_outputs):
+        metrics = self.train_metrics.compute()
+        self.log_dict(metrics)
+
+    def validation_epoch_end(self, step_outputs):
+        metrics = self.val_metrics.compute()
+        self.log_dict(metrics)
+
 
 if __name__ == "__main__":
     print("instantiating model ")
     model = ConvNetClassifier(
-        image_size=(600, 100),
+        image_width=600,
+        image_height=100,
         num_classes=79,
         dropout=0.1,
     )

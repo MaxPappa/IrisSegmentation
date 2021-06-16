@@ -5,8 +5,6 @@ from argparse import ArgumentParser
 import pytorch_lightning as pl
 import torch
 
-from neural.datamodule import IrisDataModule
-from neural.lit_modules import ConvNetClassifier
 from neural.project_utils import PROJECT_ROOT, log_hyperparameters
 
 logger = logging.getLogger(__name__)

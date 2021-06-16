@@ -3,8 +3,8 @@ name: untrained_conv
 _target_: neural.lit_modules.ConvNetClassifier
 num_classes: 
     79
-image_width:  600
 image_height:  100
+image_width:  600
 num_convnet_layers: 
     6
 activation:

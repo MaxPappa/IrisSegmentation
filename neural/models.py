@@ -10,14 +10,25 @@ def make_resnet(
     kernel_size,
     max_num_channels=512,
     dropout=0.0,
+    stride=1,
 ):
+    # layers = [
+    #     nn.Conv2d(
+    #         in_channels, 2 ** 4, kernel_size=kernel_size, padding='same'
+    #     ),
+    #     nn.BatchNorm2d(2 ** 4),
+    #     nn.Dropout(dropout),
+    #     activation,
+    # ]
     layers = [
-        nn.Conv2d(
-            in_channels, 2 ** 4, kernel_size=kernel_size, padding=kernel_size // 2
-        ),
-        nn.BatchNorm2d(2 ** 4),
-        nn.Dropout(dropout),
-        activation,
+        bottleneck_block(
+            in_channels,
+            2 ** 4,
+            activation=activation,
+            kernel_size=kernel_size,
+            dropout=dropout,
+            stride=stride,
+        )
     ]
     layers += [
         # starts from in_channels = 32, out_channels = 64 and grows exponentially
@@ -28,6 +39,7 @@ def make_resnet(
             kernel_size=kernel_size,
             activation=activation,
             dropout=dropout,
+            stride=stride,
         )
         for i in range(num_layers)
     ]
@@ -63,7 +75,9 @@ def make_mlp(in_size, out_size, hidden_sizes, activation, dropout=0.0):
     return nn.Sequential(*layers)
 
 
-def resnet_block(in_channels, out_channels, activation, kernel_size, dropout=0.0):
+def resnet_block(
+    in_channels, out_channels, activation, kernel_size, dropout=0.0, stride=1
+):
     """1 residual convolution + 1 regular convolution + max pooling
     results in output width and height shrank by a factor of 2
     """
@@ -77,6 +91,7 @@ def resnet_block(in_channels, out_channels, activation, kernel_size, dropout=0.0
             kernel_size=kernel_size,
             activation=activation,
             dropout=dropout,
+            stride=stride,
         ),
     )
 
@@ -100,10 +115,16 @@ class ResidualBlock(nn.Module):
         return x + self.model(x)
 
 
-def bottleneck_block(in_channels, out_channels, activation, kernel_size=3, dropout=0.0):
+def bottleneck_block(
+    in_channels, out_channels, activation, kernel_size=3, dropout=0.0, stride=1
+):
     return nn.Sequential(
         nn.Conv2d(
-            in_channels, out_channels, kernel_size=kernel_size, padding=kernel_size // 2
+            in_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            padding=kernel_size // 2,
+            stride=stride,
         ),
         nn.BatchNorm2d(out_channels),
         nn.Dropout(dropout),

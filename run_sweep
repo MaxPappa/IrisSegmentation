@@ -4,10 +4,11 @@ source .env
 
 # view logs with tensorboard --logdir multirun
 PYTHONPATH=$PROJECT_ROOT HYDRA_FULL_ERROR=1 python neural/train.py --multirun \
+    model=convnet_shallow \
     data.batch_size="64" \
-    model.num_convnet_layers="5,6,7"\
-    model.learning_rate="1e-3,5e-4,1e-4"\
-    model.dropout="0.1,0.2,0.5"\
-    model.max_num_channels="256,128"\
+    model.learning_rate="1e-3,5e-4,2e-3"\
+    model.classifier.num_convnet_layers="1,2,3"\
+    model.classifier.dropout="0.1,0.2,0.5"\
+    model.classifier.max_num_channels="128"\
     +trainer.accumulate_grad_batches="2,1,4" \
-    trainer.max_epochs=50
+    trainer.max_epochs=80

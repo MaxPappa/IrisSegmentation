@@ -15,6 +15,7 @@ def make_resnet(
         nn.Conv2d(
             in_channels, 2 ** 4, kernel_size=kernel_size, padding=kernel_size // 2
         ),
+        nn.BatchNorm2d(2 ** 4),
         nn.Dropout(dropout),
         activation,
     ]
@@ -35,7 +36,12 @@ def make_resnet(
 
 
 def mlp_block(in_size, out_size, activation, dropout=0.0):
-    return nn.Sequential(nn.Linear(in_size, out_size), nn.Dropout(dropout), activation)
+    return nn.Sequential(
+        nn.Linear(in_size, out_size),
+        nn.BatchNorm1d(out_size),
+        nn.Dropout(dropout),
+        activation,
+    )
 
 
 def make_mlp(in_size, out_size, hidden_sizes, activation, dropout=0.0):
@@ -44,6 +50,8 @@ def make_mlp(in_size, out_size, hidden_sizes, activation, dropout=0.0):
 
     layers = []
     for i, hidden_size in enumerate(hidden_sizes + [out_size]):
+        # if last iteration,
+        # append output layer and quit
         if i == len(hidden_sizes):
             layers.append(nn.Linear(in_size, hidden_size))
             break  # might have been continue as well, it is the last iteration for sure
@@ -83,6 +91,7 @@ class ResidualBlock(nn.Module):
                 kernel_size=kernel_size,
                 padding=kernel_size // 2,
             ),
+            nn.BatchNorm2d(channels),
             nn.Dropout(dropout),
             activation,
         )
@@ -96,6 +105,7 @@ def bottleneck_block(in_channels, out_channels, activation, kernel_size=3, dropo
         nn.Conv2d(
             in_channels, out_channels, kernel_size=kernel_size, padding=kernel_size // 2
         ),
+        nn.BatchNorm2d(out_channels),
         nn.Dropout(dropout),
         activation,
         nn.MaxPool2d(2),

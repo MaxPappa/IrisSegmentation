@@ -116,6 +116,8 @@ class IrisClassificationDataset(Dataset):
         image = self.image_transforms(image)
         mask = self.mask_transforms(mask)
 
+        image = image * mask
+
         return dict(image=image, mask=mask, label=label)
 
     def __len__(self):

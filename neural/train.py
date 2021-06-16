@@ -48,7 +48,9 @@ def main(cfg: DictConfig):
         # quando avremo il val set, questi diventano 'loss/val'
         pl.callbacks.ModelCheckpoint(monitor=cfg.train.monitor_metric),
         pl.callbacks.EarlyStopping(
-            monitor=cfg.train.monitor_metric, patience=cfg.train.early_stop_patience
+            monitor=cfg.train.monitor_metric,
+            patience=cfg.train.early_stop.patience,
+            mode=cfg.train.early_stop.mode,
         ),
     ]
 
@@ -58,7 +60,7 @@ def main(cfg: DictConfig):
         callbacks=callbacks,
     )
 
-    # log_hyperparameters(trainer=trainer, model=model, cfg=cfg)
+    log_hyperparameters(trainer=trainer, model=model, cfg=cfg)
 
     trainer.fit(model, datamodule)
 

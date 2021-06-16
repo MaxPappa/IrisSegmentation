@@ -78,7 +78,7 @@ class ConvNetClassifier(pl.LightningModule):
         self.train_metrics = metrics.clone(postfix="/train")
         self.val_metrics = metrics.clone(postfix="/val")
 
-        self.example_input_array = torch.randn((2, 3, image_width, image_height))
+        self.example_input_array = torch.randn((1, 3, image_width, image_height))
 
     def forward(self, x):
         x = self.convnet(x)
@@ -112,7 +112,7 @@ class ConvNetClassifier(pl.LightningModule):
         labels = batch["label"]
         preds = self._compute_predictions(logits)
 
-        metrics = self.train_metrics(preds, labels.view(-1))
+        self.train_metrics(preds, labels.view(-1))
 
         self.log_dict(
             {"loss/train": loss},
@@ -130,7 +130,7 @@ class ConvNetClassifier(pl.LightningModule):
         labels = batch["label"]
         preds = self._compute_predictions(logits)
 
-        metrics = self.val_metrics(preds, labels.view(-1))
+        self.val_metrics(preds, labels.view(-1))
 
         self.log_dict(
             {"loss/val": loss},
@@ -143,16 +143,16 @@ class ConvNetClassifier(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
-    def on_train_start(self):
-        # Proper logging of hyperparams and metrics in TB
-        val_metrics = self.val_metrics.compute()
-        self.logger.log_hyperparams(
-            self.hparams,
-            {
-                "loss/val": 1.0,
-                **val_metrics,
-            },
-        )
+    # def on_train_start(self):
+    #     # Proper logging of hyperparams and metrics in TB
+    #     val_metrics = self.val_metrics.compute()
+    #     self.logger.log_hyperparams(
+    #         self.hparams,
+    #         {
+    #             "loss/val": 1.0,
+    #             **val_metrics,
+    #         },
+    #     )
 
     def training_epoch_end(self, step_outputs):
         metrics = self.train_metrics.compute()

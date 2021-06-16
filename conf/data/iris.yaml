@@ -1,7 +1,8 @@
 name: iris_default
 _target_: neural.datamodule.IrisDataModule
 # Use absolute path for input to avoid messing with hydra output paths
-training_path: ${oc.env:PROJECT_ROOT}/results
+dataset_path: ${oc.env:PROJECT_ROOT}/results
 batch_size: 64
 num_workers: 4
+val_percent: 0.2
 

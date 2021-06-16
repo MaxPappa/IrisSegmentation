@@ -121,7 +121,6 @@ class IrisClassificationDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    @staticmethod
     def train_test_split(
         dataset: "IrisClassificationDataset", val_percent: float
     ) -> Tuple["IrisClassificationDataset", "IrisClassificationDataset"]:
@@ -216,7 +215,7 @@ if __name__ == "__main__":
     val_pct = 0.2
     print(f"splitto il dataset con il {100*val_pct:.2f}% di validation set...")
 
-    train_dataset, val_dataset = dataset.train_test_split(dataset, 0.2)
+    train_dataset, val_dataset = dataset.train_test_split(0.2)
 
     print(f"train: {len(train_dataset)} elementi")
     print(f"val: {len(val_dataset)} elementi")

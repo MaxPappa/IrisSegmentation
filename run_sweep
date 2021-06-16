@@ -5,7 +5,7 @@ source .env
 # view logs with tensorboard --logdir multirun
 PYTHONPATH=$PROJECT_ROOT HYDRA_FULL_ERROR=1 python neural/train.py --multirun \
     data.batch_size="64,128" \
-    model.num_convnet_layers="5,6,7"\
+    model.num_convnet_layers="6,7"\
     model.dropout="0.2,0.5"\
     model.max_num_channels="128,256"\
     model.learning_rate="1e-3,1e-2,1e-4,5e-3"\

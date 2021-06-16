@@ -130,12 +130,14 @@ class ConvNetClassifier(pl.LightningModule):
 
     @torch.no_grad()
     def validation_step(self, batch, batch_idx):
+
         step_result = self.step(batch)
         loss, logits = step_result["loss"], step_result["logits"]
         labels = batch["label"]
+        preds = self._compute_predictions(logits)
 
-        metrics = self.val_metrics(logits, labels.view(-1))
-        self.log_dict(metrics, on_epoch=True, on_step=False)
+        metrics = self.val_metrics(preds, labels.view(-1))
+        self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
 
         self.log_dict(
             {"loss/val": loss},

@@ -78,7 +78,7 @@ class Classifier(pl.LightningModule):
         labels = batch["label"]
         preds = self._compute_predictions(logits)
 
-        self.train_metrics(preds, labels.view(-1))
+        metrics = self.train_metrics(preds, labels.view(-1))
 
         self.log_dict(
             {"loss/train": loss},
@@ -96,7 +96,7 @@ class Classifier(pl.LightningModule):
         labels = batch["label"]
         preds = self._compute_predictions(logits)
 
-        self.val_metrics(preds, labels.view(-1))
+        mterics = self.val_metrics(preds, labels.view(-1))
 
         self.log_dict(
             {"loss/val": loss},
@@ -109,13 +109,27 @@ class Classifier(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
-    def training_epoch_end(self, step_outputs):
-        metrics = self.train_metrics.compute()
-        self.log_dict(metrics)
+    # def training_epoch_end(self, step_outputs):
+    #     metrics = self.train_metrics.compute()
+    #     self.log_dict(metrics)
 
     def validation_epoch_end(self, step_outputs):
-        metrics = self.val_metrics.compute()
-        self.log_dict(metrics)
+        train_metrics = self.train_metrics.compute()
+        val_metrics = self.val_metrics.compute()
+
+        self.log_dict(train_metrics)
+        self.log_dict(val_metrics)
+
+        for train_metric_key, train_metric in train_metrics.items():
+            _, metric_name = train_metric_key.split("/")
+
+            val_metric_key = train_metric_key.replace("train", "val")
+            val_metric = val_metrics[val_metric_key]
+            self.logger.experiment.add_scalars(
+                metric_name,
+                {train_metric_key: train_metric, val_metric_key: val_metric},
+                global_step=self.global_step,
+            )
 
 
 class UntrainedConvNet(pl.LightningModule):

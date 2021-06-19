@@ -81,7 +81,7 @@ class Classifier(pl.LightningModule):
         metrics = self.train_metrics(preds, labels.view(-1))
 
         self.log_dict(
-            {"loss/train": loss},
+            {"loss/train": loss, **metrics},
             on_step=False,
             on_epoch=True,
             prog_bar=True,
@@ -96,10 +96,10 @@ class Classifier(pl.LightningModule):
         labels = batch["label"]
         preds = self._compute_predictions(logits)
 
-        mterics = self.val_metrics(preds, labels.view(-1))
+        metrics = self.val_metrics(preds, labels.view(-1))
 
         self.log_dict(
-            {"loss/val": loss},
+            {"loss/val": loss, **metrics},
             on_step=False,
             on_epoch=True,
             prog_bar=True,
@@ -113,23 +113,23 @@ class Classifier(pl.LightningModule):
     #     metrics = self.train_metrics.compute()
     #     self.log_dict(metrics)
 
-    def validation_epoch_end(self, step_outputs):
-        train_metrics = self.train_metrics.compute()
-        val_metrics = self.val_metrics.compute()
+    # def validation_epoch_end(self, step_outputs):
+    #     train_metrics = self.train_metrics.compute()
+    #     val_metrics = self.val_metrics.compute()
 
-        self.log_dict(train_metrics)
-        self.log_dict(val_metrics)
+    #     self.log_dict(train_metrics)
+    #     self.log_dict(val_metrics)
 
-        for train_metric_key, train_metric in train_metrics.items():
-            _, metric_name = train_metric_key.split("/")
+    #     for train_metric_key, train_metric in train_metrics.items():
+    #         _, metric_name = train_metric_key.split("/")
 
-            val_metric_key = train_metric_key.replace("train", "val")
-            val_metric = val_metrics[val_metric_key]
-            self.logger.experiment.add_scalars(
-                metric_name,
-                {train_metric_key: train_metric, val_metric_key: val_metric},
-                global_step=self.global_step,
-            )
+    #         val_metric_key = train_metric_key.replace("train", "val")
+    #         val_metric = val_metrics[val_metric_key]
+    #         self.logger.experiment.add_scalars(
+    #             metric_name,
+    #             {train_metric_key: train_metric, val_metric_key: val_metric},
+    #             global_step=self.global_step,
+    #         )
 
 
 class UntrainedConvNet(pl.LightningModule):
@@ -154,6 +154,11 @@ class UntrainedConvNet(pl.LightningModule):
         self.max_num_channels = max_num_channels
         self.stride = stride
 
+        self.input_shape = (3, image_width, image_height)
+        self.example_input_array = torch.randn(
+            self.input_shape
+        )  # nice things for pytorch lightning
+
         convnet, out_channels = make_resnet(
             in_channels=3,
             num_layers=num_convnet_layers,
@@ -169,25 +174,23 @@ class UntrainedConvNet(pl.LightningModule):
         )
         self.flattener = nn.Flatten(1)  # converts conv output to shape [batch, -1]
 
-        # calculate how much the convnet has shrinked the image width/height
-        flattened_size = out_channels * (
-            (image_width // ((2 * stride) ** (1 + self.num_convnet_layers)))
-            * (image_height // ((2 * stride) ** (1 + self.num_convnet_layers)))
-        )
+        with torch.no_grad():
+            conv_output = self.flattener(
+                self.convnet(self.example_input_array.unsqueeze(0))
+            )
+            flattened_size = conv_output.numel()
         assert flattened_size != 0, "Convolution results in a size 0 feature map!"
+
         # classifier just gets a flattened view of image
         self.classifier = make_mlp(
             flattened_size,
             num_classes,
-            hidden_sizes=[1000],
+            hidden_sizes=[500],
             dropout=dropout,
             activation=activation,
         )
 
-        self.input_shape = (3, image_width, image_height)
-        self.example_input_array = torch.randn(self.input_shape)
-
-        summary(self.convnet, self.input_shape, batch_size=-1, device=str(self.device))
+        summary(self, self.input_shape, batch_size=-1, device=str(self.device))
 
     def forward(self, x):
         feature_map = self.convnet(x)

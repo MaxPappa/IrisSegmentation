@@ -12,23 +12,17 @@ def make_resnet(
     dropout=0.0,
     stride=1,
 ):
-    # layers = [
-    #     nn.Conv2d(
-    #         in_channels, 2 ** 4, kernel_size=kernel_size, padding='same'
-    #     ),
-    #     nn.BatchNorm2d(2 ** 4),
-    #     nn.Dropout(dropout),
-    #     activation,
-    # ]
     layers = [
-        bottleneck_block(
+        nn.Conv2d(
             in_channels,
             2 ** 4,
-            activation=activation,
             kernel_size=kernel_size,
-            dropout=dropout,
+            padding=kernel_size // 2,
             stride=stride,
-        )
+        ),
+        nn.BatchNorm2d(2 ** 4),
+        nn.Dropout(dropout),
+        activation,
     ]
     layers += [
         # starts from in_channels = 32, out_channels = 64 and grows exponentially

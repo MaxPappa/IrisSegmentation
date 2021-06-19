@@ -83,13 +83,11 @@ def log_hyperparameters(
     )
 
     # send hparams to all loggers
-    trainer.logger.log_hyperparams(
-        hparams, {**model.val_metrics.compute(), "loss/val": 1.0}
-    )
+    trainer.logger.log_hyperparams(hparams)
 
     # disable logging any more hyperparameters for all loggers
     # (this is just a trick to prevent trainer from logging hparams of model, since we already did that above)
-    # trainer.logger.log_hyperparams = empty
+    trainer.logger.log_hyperparams = empty
 
 
 # Load environment variables

@@ -7,3 +7,6 @@ Pillow
 pytorch-lightning
 hydra-core
 python-dotenv
+pandas
+seaborn
+wandb

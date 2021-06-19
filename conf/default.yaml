@@ -5,7 +5,7 @@ hydra:
   run:
     # Configure output dir of each experiment programmatically from the arguments
     # Example "outputs/mnist/classifier/baseline/2021-03-10-141516"
-    dir: lightning_logs/${data.name}/${model.name}/${experiment}/${now:%Y-%m-%d_%H%M%S}
+    dir: lightning_logs/${model.name}/${now:%Y-%m-%d_%H%M%S}
 
 # Global configurations shared between different modules
 experiment: baseline
@@ -15,6 +15,7 @@ defaults:
   - data: iris.yaml  # Path to sub-config, can also omit the .yaml extension
   - model: convnet.yaml  # I add full path for easy navigation in vim (cursor in path, press gf)
   - train: default.yaml
+  - logger: wandb.yaml
 
   # cosa fa questo? boh
   # fa cose carine se installi hydra-colorlog e usi joblib ma non serve

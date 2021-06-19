@@ -4,10 +4,11 @@ from omegaconf import OmegaConf, DictConfig
 from argparse import ArgumentParser
 import pytorch_lightning as pl
 import torch
+from pathlib import Path
 
 from neural.project_utils import PROJECT_ROOT, log_hyperparameters
 
-logger = logging.getLogger(__name__)
+logger = hydra.utils.log
 
 
 def parse_args():
@@ -36,11 +37,12 @@ def main(cfg: DictConfig):
 
     datamodule = hydra.utils.instantiate(cfg.data)
 
-    # Let hydra manage direcotry outputs
-    tensorboard = pl.loggers.TensorBoardLogger(
-        ".", "", "", log_graph=False, default_hp_metric=False
-    )
-    # "./lightning_logs/", "default", None, log_graph=True, default_hp_metric=False
+    pl_logger = hydra.utils.instantiate(cfg.logger)
+    pl_logger.watch(model, log="all", log_freq=200)
+
+    # Store the YaML config separately into the wandb dir
+    yaml_conf: str = OmegaConf.to_yaml(cfg=cfg)
+    (Path(pl_logger.experiment.dir) / "hparams.yaml").write_text(yaml_conf)
 
     callbacks = [
         # quando avremo il val set, questi diventano 'loss/val'
@@ -54,13 +56,15 @@ def main(cfg: DictConfig):
 
     trainer = pl.Trainer(
         **OmegaConf.to_container(cfg.trainer),
-        logger=tensorboard,
+        logger=pl_logger,
         callbacks=callbacks,
     )
 
     log_hyperparameters(trainer=trainer, model=model, cfg=cfg)
 
     trainer.fit(model, datamodule)
+
+    pl_logger.experiment.finish()
 
 
 if __name__ == "__main__":

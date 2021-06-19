@@ -1,3 +1,4 @@
+from math import log2
 import os
 import torch
 from torch import nn
@@ -27,6 +28,7 @@ class Classifier(pl.LightningModule):
         name: str,  # symbolic name (used in logs)
         classifier: torch.nn.Module,
         learning_rate: float = 1e-3,
+        weight_decay: float = 0.0,
     ):
         super().__init__()
 
@@ -34,6 +36,7 @@ class Classifier(pl.LightningModule):
         self.learning_rate = learning_rate
         self.classifier = classifier
         self.num_classes = self.classifier.get_num_classes()
+        self.weight_decay = weight_decay
 
         self.loss_criterion = nn.CrossEntropyLoss()
 
@@ -107,7 +110,9 @@ class Classifier(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        return torch.optim.Adam(
+            self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
+        )
 
     # def training_epoch_end(self, step_outputs):
     #     metrics = self.train_metrics.compute()
@@ -141,10 +146,20 @@ class UntrainedConvNet(pl.LightningModule):
         num_convnet_layers=4,
         activation=nn.LeakyReLU(),
         dropout=0.0,
+        min_num_channels=16,
         max_num_channels=256,
         stride=1,
+        mlp_hidden_dim=512,
     ):
         super().__init__()
+
+        min_exponent = log2(min_num_channels)
+        # controlla che min_exponent sia un numero intero
+        # (e che quindi min_num_channels era una potenza di 2)
+        assert (
+            min_exponent - round(min_exponent) == 0
+        ), "You must provide a power of 2 as the minimum number of convnet channels"
+        min_exponent = int(min_exponent)
 
         self.save_hyperparameters()
         self.image_width = image_width
@@ -152,7 +167,9 @@ class UntrainedConvNet(pl.LightningModule):
         self.num_classes = num_classes
         self.num_convnet_layers = num_convnet_layers
         self.max_num_channels = max_num_channels
+        self.mlp_hidden_dim = mlp_hidden_dim
         self.stride = stride
+        self.min_exponent = min_exponent
 
         self.input_shape = (3, image_width, image_height)
         self.example_input_array = torch.randn(
@@ -167,6 +184,7 @@ class UntrainedConvNet(pl.LightningModule):
             kernel_size=3,
             max_num_channels=max_num_channels,
             stride=self.stride,
+            min_exponent=self.min_exponent,
         )
         self.conv_out_channels = out_channels
         self.convnet = nn.Sequential(
@@ -185,7 +203,7 @@ class UntrainedConvNet(pl.LightningModule):
         self.classifier = make_mlp(
             flattened_size,
             num_classes,
-            hidden_sizes=[500],
+            hidden_sizes=[mlp_hidden_dim],
             dropout=dropout,
             activation=activation,
         )

@@ -38,7 +38,7 @@ def main(cfg: DictConfig):
     datamodule = hydra.utils.instantiate(cfg.data)
 
     pl_logger = hydra.utils.instantiate(cfg.logger)
-    pl_logger.watch(model, log="all", log_freq=200)
+    pl_logger.watch(model, log="all", log_freq=50)
 
     # Store the YaML config separately into the wandb dir
     yaml_conf: str = OmegaConf.to_yaml(cfg=cfg)

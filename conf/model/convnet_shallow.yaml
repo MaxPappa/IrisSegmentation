@@ -3,6 +3,7 @@ name: untrained_conv_shallow
 _target_: neural.lit_modules.Classifier
 learning_rate: 
     1e-3
+weight_decay: 0.0
 classifier:
     _target_: neural.lit_modules.UntrainedConvNet
     num_classes: 
@@ -14,13 +15,14 @@ classifier:
             torch.nn.LeakyReLU
     dropout: 
         0.2
-    max_num_channels:
-        128
+    min_num_channels: 16
+    max_num_channels: 128
     # this is what makes the convnet "shallow":
-    # a higher stride allows for greater dim. reduction ,
-    # 4x instead of 2x at each layer
+    # a higher stride allows for greater dimensionality reduction,
+    # that is 4x instead of 2x at each layer
     stride:
         2       
     # so we use half as many layers to achieve the same compression effect
     num_convnet_layers: 
         2
+    mlp_hidden_dim: 512

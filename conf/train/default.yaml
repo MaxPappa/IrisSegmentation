@@ -1,4 +1,4 @@
 early_stop:
-    patience: 5
+    patience: 8
     mode: max  # 'max' massimizza, 'min' minimizza. la loss vuole 'min', i punteggi 'max'
 monitor_metric: F1/val # diventera' loss/val quando avremo il val set

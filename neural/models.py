@@ -11,16 +11,18 @@ def make_resnet(
     max_num_channels=512,
     dropout=0.0,
     stride=1,
+    min_exponent=4,  # number of conv filters increases exponentially from a layer to the next
 ):
+    out_exponent = min_exponent + 1
     layers = [
         nn.Conv2d(
             in_channels,
-            2 ** 4,
+            2 ** min_exponent,
             kernel_size=kernel_size,
             padding=kernel_size // 2,
             stride=stride,
         ),
-        nn.BatchNorm2d(2 ** 4),
+        nn.BatchNorm2d(2 ** min_exponent),
         nn.Dropout(dropout),
         activation,
     ]
@@ -28,8 +30,8 @@ def make_resnet(
         # starts from in_channels = 32, out_channels = 64 and grows exponentially
         # with num_layers = 3 it goes to 256 channels
         resnet_block(
-            min(max_num_channels, 2 ** (4 + i)),
-            min(max_num_channels, 2 ** (5 + i)),
+            min(max_num_channels, 2 ** (min_exponent + i)),
+            min(max_num_channels, 2 ** (out_exponent + i)),
             kernel_size=kernel_size,
             activation=activation,
             dropout=dropout,
@@ -37,7 +39,7 @@ def make_resnet(
         )
         for i in range(num_layers)
     ]
-    out_channels = min(max_num_channels, 2 ** (5 + num_layers - 1))
+    out_channels = min(max_num_channels, 2 ** (out_exponent + num_layers - 1))
     return nn.Sequential(*layers), out_channels
 
 

@@ -6,12 +6,12 @@ source .env
 PYTHONPATH=$PROJECT_ROOT HYDRA_FULL_ERROR=1 python neural/train.py --multirun \
     model=convnet_shallow \
     data.batch_size="64" \
-    model.classifier.num_convnet_layers="2,3"\
+    model.classifier.num_convnet_layers="2,1"\
     model.classifier.dropout="0.1,0.2"\
     model.classifier.max_num_channels="128"\
-    model.classifier.mlp_hidden_dim="256,512,1024"\
-    +trainer.accumulate_grad_batches="2,1,4" \
+    model.classifier.mlp_hidden_dim="256,512"\
+    +trainer.accumulate_grad_batches="2,1" \
     model.classifier.min_num_channels="32,16"\
-    model.learning_rate="1e-3,5e-4,2e-3"\
-    model.weight_decay="0.0,1e-2,1e-4"\
+    model.learning_rate="1e-3,5e-4"\
+    model.weight_decay="0.0,1e-2,1e-4,1e-5"\
     trainer.max_epochs=80

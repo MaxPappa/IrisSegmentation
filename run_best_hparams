@@ -1,0 +1,16 @@
+#!/bin/sh
+
+source .env
+
+PYTHONPATH=$PROJECT_ROOT HYDRA_FULL_ERROR=1 python neural/train.py \
+    model=convnet_shallow \
+    data.batch_size="64" \
+    model.classifier.num_convnet_layers="2"\
+    model.classifier.dropout="0.1"\
+    model.classifier.min_num_channels="16"\
+    model.classifier.max_num_channels="128"\
+    model.classifier.mlp_hidden_dim="512"\
+    +trainer.accumulate_grad_batches="1" \
+    model.learning_rate="5e-4"\
+    trainer.max_epochs=80
+

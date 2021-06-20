@@ -8,8 +8,6 @@ from pathlib import Path
 
 from neural.project_utils import PROJECT_ROOT, log_hyperparameters
 
-logger = hydra.utils.log
-
 
 def parse_args():
 
@@ -27,7 +25,7 @@ def parse_args():
 
 @hydra.main(config_path=str(PROJECT_ROOT / "conf"), config_name="default")
 def main(cfg: DictConfig):
-    logger.info("\n" + OmegaConf.to_yaml(cfg))
+    hydra.utils.log.info("\n" + OmegaConf.to_yaml(cfg))
 
     # Instantiate all modules specified in the configs
     model = hydra.utils.instantiate(

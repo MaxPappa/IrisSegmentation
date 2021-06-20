@@ -13,5 +13,5 @@ PYTHONPATH=$PROJECT_ROOT HYDRA_FULL_ERROR=1 python neural/train.py --multirun \
     +trainer.accumulate_grad_batches="2,1" \
     model.classifier.min_num_channels="32,16"\
     model.learning_rate="1e-3,5e-4"\
-    model.weight_decay="0.0,1e-2,1e-4,1e-5"\
+    model.weight_decay="1e-2,1e-4,1e-5"\
     trainer.max_epochs=80

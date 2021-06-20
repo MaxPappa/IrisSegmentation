@@ -7,6 +7,9 @@ from torchvision import transforms as T
 from torch.utils.data import DataLoader, random_split
 import pytorch_lightning as pl
 from typing import Tuple
+import hydra
+from OmegaConf import DictConfig
+from neural.project_utils import PROJECT_ROOT
 
 from torchsummary import summary
 
@@ -37,6 +40,8 @@ class Classifier(pl.LightningModule):
         self.classifier = classifier
         self.num_classes = self.classifier.get_num_classes()
         self.weight_decay = weight_decay
+        # used by pytorch lightning to extimate some stuff
+        self.example_input_array = self.classifier.example_input_array
 
         self.loss_criterion = nn.CrossEntropyLoss()
 
@@ -172,8 +177,8 @@ class UntrainedConvNet(pl.LightningModule):
         self.min_exponent = min_exponent
 
         self.input_shape = (3, image_width, image_height)
-        self.example_input_array = torch.randn(
-            self.input_shape
+        self.example_input_array = torch.randn(self.input_shape).unsqueeze(
+            0
         )  # nice things for pytorch lightning
 
         convnet, out_channels = make_resnet(
@@ -193,9 +198,7 @@ class UntrainedConvNet(pl.LightningModule):
         self.flattener = nn.Flatten(1)  # converts conv output to shape [batch, -1]
 
         with torch.no_grad():
-            conv_output = self.flattener(
-                self.convnet(self.example_input_array.unsqueeze(0))
-            )
+            conv_output = self.flattener(self.convnet(self.example_input_array))
             flattened_size = conv_output.numel()
         assert flattened_size != 0, "Convolution results in a size 0 feature map!"
 
@@ -208,7 +211,9 @@ class UntrainedConvNet(pl.LightningModule):
             activation=activation,
         )
 
-        summary(self, self.input_shape, batch_size=-1, device=str(self.device))
+        hydra.utils.log(
+            summary(self, self.input_shape, batch_size=-1, device=str(self.device))
+        )
 
     def forward(self, x):
         feature_map = self.convnet(x)
@@ -220,14 +225,10 @@ class UntrainedConvNet(pl.LightningModule):
         return self.num_classes
 
 
-if __name__ == "__main__":
+@hydra.main(config_path=str(PROJECT_ROOT / "conf"), config_name="default")
+def main(cfg: DictConfig):
     print("instantiating model ")
-    model = ConvNetClassifier(
-        image_width=600,
-        image_height=100,
-        num_classes=79,
-        dropout=0.1,
-    )
+    model = hydra.utils.instantiate(cfg.model)
     print("model created")
 
     from neural.dataset import get_dataloader
@@ -242,3 +243,7 @@ if __name__ == "__main__":
     loss = nn.functional.cross_entropy(model_output, y)
     loss.backward()
     print(f"{loss=}")
+
+
+if __name__ == "__main__":
+    main()

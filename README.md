@@ -3,6 +3,15 @@ The aim of this project is to re-create (in the numpiest way) an iris segmentati
 Iris detection is done using Daugman's integro-differential operator [[1]](#1) on the multi-channel as done by Haindl-Krupička in [[2]](#2). Daugman's operator is then used on the red channel to detect the pupil.
 After doing this, normalization is done with the rubber sheet model and occlusions are detected using methods described in [[2]](#2).
 
+
+# Weights & Biases Quickstart
+
+If it is the first time using weights & biases, you need to set it up.
+
+1. Get a w&b account
+2. Install the `wandb` command line client with  `pip install wandb` **inside the virtualenv** (i.e. you already ran one of `conda activate my_virtual_env_name` or `source /path/to/my/venv/bin/activate` depending on how you set it up)
+3. Use the command line utility to log in to your account: `wandb login`
+4. Done! you can run a hyperparameter search with `bash run_sweep`, and all your work will be logged to you weights & biases account
 ***
 
 # References

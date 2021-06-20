@@ -211,7 +211,7 @@ class UntrainedConvNet(pl.LightningModule):
             activation=activation,
         )
 
-        hydra.utils.log(
+        hydra.utils.log.info(
             summary(self, self.input_shape, batch_size=-1, device=str(self.device))
         )
 

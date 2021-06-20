@@ -6,6 +6,7 @@ torchvision
 Pillow
 pytorch-lightning
 hydra-core
+omegaconf
 python-dotenv
 pandas
 seaborn

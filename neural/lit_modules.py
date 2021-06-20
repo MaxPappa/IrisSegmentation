@@ -242,7 +242,6 @@ def main(cfg: DictConfig):
     model_output = model(x)
     loss = nn.functional.cross_entropy(model_output, y)
     loss.backward()
-    print(f"{loss=}")
 
 
 if __name__ == "__main__":

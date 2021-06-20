@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, random_split
 import pytorch_lightning as pl
 from typing import Tuple
 import hydra
-from OmegaConf import DictConfig
+from omegaconf import DictConfig
 from neural.project_utils import PROJECT_ROOT
 
 from torchsummary import summary

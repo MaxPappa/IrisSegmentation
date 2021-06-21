@@ -53,7 +53,8 @@ class IrisClassificationDataset(Dataset):
         label is the numerical ID of the subject
     """
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, use_mask=True):
+        self.use_mask = use_mask
         self.base_path = Path(path)
         self.iris_path = self.base_path / "normalized"
         self.mask_path = self.base_path / "mask"
@@ -116,7 +117,8 @@ class IrisClassificationDataset(Dataset):
         image = self.image_transforms(image)
         mask = self.mask_transforms(mask)
 
-        image = image * mask
+        if self.use_mask:
+            image = image * mask
 
         return dict(image=image, mask=mask, label=label)
 

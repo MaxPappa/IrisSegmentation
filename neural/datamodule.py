@@ -13,16 +13,18 @@ class IrisDataModule(pl.LightningDataModule):
         num_workers: int,
         name: str = "iris_dataset",  # symbolic name (for logging)
         val_percent: float = 0.2,  # size of val split (float in [0,1])
+        use_mask=True,
     ):
         super().__init__()
         self.dataset_path = dataset_path
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.val_percent = val_percent
+        self.use_mask = use_mask
 
     # first-time setup
     def setup(self, stage: Optional[str] = None):
-        dataset = IrisClassificationDataset(self.dataset_path)
+        dataset = IrisClassificationDataset(self.dataset_path, use_mask=self.use_mask)
 
         self.train_dataset, self.val_dataset = dataset.train_test_split(
             self.val_percent

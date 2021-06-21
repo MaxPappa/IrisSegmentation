@@ -169,10 +169,10 @@ def lowerEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     mean, stdev = cv2.meanStdDev(normRed[0 : rows // 2, cols // 4 : 3 * cols // 4])
     mean, stdev = float(mean), float(stdev)
 
-    newNormRed = normRed.copy()
-    newNormRed[0 : rows // 2, cols//4] = 0
-    newNormRed[rows//2, cols//4 : 3*cols//4] = 0
-    newNormRed[0 : rows // 2, 3*cols//4] = 0
+    # newNormRed = normRed.copy()
+    # newNormRed[0 : rows // 2, cols//4] = 0
+    # newNormRed[rows//2, cols//4 : 3*cols//4] = 0
+    # newNormRed[0 : rows // 2, 3*cols//4] = 0
     #cv2.imwrite('./out/lowerEyelidDistributionSection.jpg', newNormRed)
 
     # threshold = int(mean+stdev)

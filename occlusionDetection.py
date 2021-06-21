@@ -6,6 +6,8 @@ from scipy.signal import argrelextrema
 from numpy.polynomial.polynomial import polyfit
 from typing import Tuple
 
+prewittKerX = np.array([[1,1,1],[0,0,0],[-1,-1,-1]])
+prewittKerY = np.array([[-1,0,1],[-1,0,1],[-1,0,1]])
 
 def drawRays(
     img: np.ndarray, numRays: int
@@ -69,33 +71,44 @@ def upperEyelidDetection(normRed: np.ndarray, numRays: int) -> np.ndarray:
     upEyelid[:, cols // 2 :] = normRed[:, 0 : cols // 2]
     upEyelid[:, 0 : cols // 2] = normRed[:, cols // 2 :]
 
-    # cv2.imshow('img', upEyelid)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-    swappedMask = np.full_like(normRed, fill_value=255)
+    #cv2.imwrite('./out/swapped_norm.jpg',upEyelid)
 
-    blurred = cv2.GaussianBlur(
-        upEyelid, (41, 41), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_DEFAULT
-    )
-    rayMask, (rayXs, rayYs) = drawRays(blurred, numRays=numRays)
+    swappedMask = np.full_like(upEyelid, fill_value=255)
 
-    rayedImg = normRed.copy()
+    # blurred = cv2.GaussianBlur(
+    #     upEyelid, (3, 3), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_DEFAULT
+    # )
+    rayMask, (rayXs, rayYs) = drawRays(upEyelid, numRays=numRays)
+
+    rayedImg = upEyelid.copy()
     rayedImg[rayYs, rayXs] = 160  # grey rays
 
-    sob = cv2.Sobel(rayedImg, cv2.CV_8U, 1, 1, ksize=5)
+    #cv2.imwrite('./out/rayedImg.jpg', rayedImg)
+
+    #sob = cv2.Sobel(rayedImg, cv2.CV_8U, 1, 1, ksize=5)
+    blurred = cv2.GaussianBlur(rayedImg,(3,3),0)
+    prewittedX = cv2.filter2D(blurred, -1, prewittKerX)
+    prewittedY = cv2.filter2D(blurred, -1, prewittKerY)
+    prewitt = prewittedX + prewittedY
+
+    #cv2.imwrite('./out/prewitted.jpg', prewitt)
+
     maxIDs = np.argmax(
-        sob[rayYs, rayXs][:, ::-1], axis=1
+        prewitt[rayYs, rayXs][:, ::-1], axis=1
     )  # with the argmax I want the LAST max on each ray, not the first ones
     maxY = np.take_along_axis(rayYs[:, ::-1], np.expand_dims(maxIDs, axis=-1), axis=-1)
     maxX = np.take_along_axis(rayXs[:, ::-1], np.expand_dims(maxIDs, axis=-1), axis=-1)
 
     # outliers detection
     coordMask = np.ones_like(maxY).astype(bool)
-    coordMask[argrelextrema(sob[maxY, maxX], np.less)] = False
+    coordMask[argrelextrema(prewitt[maxY, maxX], np.less)] = False
     coordMask[argrelextrema(maxY, np.less)] = False
     coordMask[argrelextrema(maxX, np.less)] = False
 
     maxX, maxY = maxX[coordMask], maxY[coordMask]  # removing outliers
+
+    rayedImg[maxY, maxX] = 0
+    #cv2.imwrite('./out/rayedImg_removeOutliers.jpg', rayedImg)
 
     xPoly = np.arange(0, cols, 1, dtype=int)
     coeffs = polyfit(maxX, maxY, deg=2)
@@ -105,9 +118,9 @@ def upperEyelidDetection(normRed: np.ndarray, numRays: int) -> np.ndarray:
     ).astype(int)
     maskCoords = np.ones_like(yPoly, dtype=bool)
     maskCoords[np.where(yPoly < 0)] = False
-    maskCoords[
-        np.where(yPoly >= rows)
-    ] = False  # But with degree == 2 this shouldn't happen.
+    # maskCoords[
+    #     np.where(yPoly >= rows)
+    # ] = False  # But with degree == 2 this shouldn't happen.
 
     xPoly, yPoly = (
         xPoly[maskCoords],
@@ -117,10 +130,13 @@ def upperEyelidDetection(normRed: np.ndarray, numRays: int) -> np.ndarray:
     # I literally don't know how to do this in a numpiest way. Tried with np.indices (which returns 2 grids of indices)
     # but can't figure out how to do it. So I surrended and used a for loop. \_('-')_/
     swappedMask = doit(swappedMask, xPoly, yPoly)
+    #cv2.imwrite('./out/swappedMask_upperEyelid.jpg', swappedMask)
 
     mask = swappedMask.copy()
     mask[:, cols // 2 :] = swappedMask[:, 0 : cols // 2]
     mask[:, 0 : cols // 2] = swappedMask[:, cols // 2 :]
+
+    #cv2.imwrite('./out/mask_upperEyelid.jpg', mask)
 
     return mask
 
@@ -152,6 +168,12 @@ def lowerEyelidDetection(normRed: np.ndarray) -> np.ndarray:
     # mean,stdev = cv2.meanStdDev(normRed[sectionY, sectionX])
     mean, stdev = cv2.meanStdDev(normRed[0 : rows // 2, cols // 4 : 3 * cols // 4])
     mean, stdev = float(mean), float(stdev)
+
+    newNormRed = normRed.copy()
+    newNormRed[0 : rows // 2, cols//4] = 0
+    newNormRed[rows//2, cols//4 : 3*cols//4] = 0
+    newNormRed[0 : rows // 2, 3*cols//4] = 0
+    #cv2.imwrite('./out/lowerEyelidDistributionSection.jpg', newNormRed)
 
     # threshold = int(mean+stdev)
     if stdev > mean / 4:

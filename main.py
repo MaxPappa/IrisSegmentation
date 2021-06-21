@@ -22,7 +22,9 @@ def parallelSegmentation(path: Path) -> None:
     cv2.imwrite(f"{config.folderNames.normPath}/norm_{path.name}", normImg)
     cv2.imwrite(f"{config.folderNames.dstPath}/{path.name}", img)
 
-    upperMask = upperEyelidDetection(normImg[:,:,2], numRays=46)    # red channel as input, numRays as in the haindl-krupicka paper
+    upperMask = upperEyelidDetection(
+        normImg[:, :, 2], numRays=46
+    )  # red channel as input, numRays as in the haindl-krupicka paper
     lowerMask = lowerEyelidDetection(normImg[:, :, 2])  # red channel as input
     reflMask = reflectionDetection(normImg[:, :, 0])  # blue channel as input
 
@@ -65,16 +67,19 @@ if __name__ == "__main__":
     pList = list(dir.glob(config.dataset.filePathsREGEX))
     color = config.dataset.color
     dst = Path(config.folderNames.dstPath)
-    mkdirs(
-        [
-            dst,
-            Path(config.folderNames.normPath),
-            Path(config.folderNames.maskPath),
-            Path(config.folderNames.upperPath),
-            Path(config.folderNames.lowerPath),
-            Path(config.folderNames.reflPath),
-        ]
-    )
+    dirnames = [
+        dst,
+        Path(config.folderNames.normPath),
+        Path(config.folderNames.maskPath),
+        Path(config.folderNames.upperPath),
+        Path(config.folderNames.lowerPath),
+        Path(config.folderNames.reflPath),
+    ]
+    mkdirs(dirnames)
+
+    print("\nmaking directories:", *dirnames, sep="\n - ")
+
+    input("\n\npress enter to continue... (or ctrl+c to quit)")
 
     # for p in pList:
     # parallelSegmentation(p)

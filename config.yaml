@@ -1,10 +1,10 @@
 folderNames:
   dstPath: ./results
-  normPath: ./results/normalized
-  maskPath: ./results/mask
-  upperPath: ./results/upperEyelidMask
-  lowerPath: ./results/lowerEyelidMask
-  reflPath: ./results/reflectionMask
+  normPath: ./${.dstPath}/normalized
+  maskPath: ./${.dstPath}/mask
+  upperPath: ./${.dstPath}/upperEyelidMask
+  lowerPath: ./${.dstPath}/lowerEyelidMask
+  reflPath: ./${.dstPath}/reflectionMask
 
 dataset:
   filePathsREGEX: ./UTIRIS/RGB Images/*/*.JPG

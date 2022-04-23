@@ -1,5 +1,5 @@
-# CV_IrisSegmentation
-The aim of this project is to re-create (in the numpiest way) an iris segmentation.
+# IrisSegmentation
+The aim of this project is to re-create (in the numpiest way) an iris segmentation algorithm.
 Iris detection is done using Daugman's integro-differential operator [[1]](#1) on the multi-channel as done by Haindl-Krupička in [[2]](#2). Daugman's operator is then used on the red channel to detect the pupil.
 After doing this, normalization is done with the rubber sheet model and occlusions are detected using methods described in [[2]](#2).
 
